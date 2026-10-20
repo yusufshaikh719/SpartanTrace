@@ -54,7 +54,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
         contentSnippet: reportData.contentSnippet,
       });
 
-      alert('Report submitted for Administrator review. Thank you for keeping SpartanTrace safe.');
+      alert('Report submitted for administrator review.');
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -65,67 +65,62 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="relative bg-white rounded-3xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden my-auto max-h-[85vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="relative bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-neutral-200 overflow-hidden my-auto max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-red-50/60">
+        <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <h2 className="text-base font-extrabold text-gray-900">
-              Report {reportData.contentType === 'listing' ? 'Listing' : 'Direct Message'} (FR26)
+            <AlertTriangle className="w-4 h-4 text-red-500" />
+            <h2 className="text-sm font-bold text-neutral-900">
+              Report Content
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 rounded-full"
+            className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-full"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content Snippet */}
-        <div className="p-4 bg-gray-50 border-b border-gray-100 text-xs text-gray-600">
-          <span className="font-semibold block text-gray-500 mb-1">Reported Content:</span>
+        <div className="p-4 bg-neutral-50 text-xs text-neutral-600 border-b border-neutral-100">
           <p className="italic line-clamp-2">"{reportData.contentSnippet}"</p>
-          <span className="text-[10px] text-gray-400 block mt-1">
-            Owner: {reportData.ownerName}
-          </span>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-              Reason for Report *
+            <label className="block text-xs font-semibold text-neutral-700 mb-1">
+              Reason
             </label>
             <textarea
               rows={3}
-              placeholder="e.g. Inappropriate photo, scam/fraudulent claim, harassment, false information..."
+              placeholder="Explain why this content should be removed..."
               value={reason}
               onChange={(e) => {
                 setReason(e.target.value);
                 if (error) setError('');
               }}
-              className="w-full text-xs border border-gray-300 rounded-xl p-3 focus:outline-red-500"
+              className="w-full text-xs border border-neutral-200 rounded-xl p-3 focus:outline-neutral-900"
             />
-            {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+            {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
           </div>
 
-          <div className="pt-2 flex items-center justify-between border-t border-gray-100">
+          <div className="pt-2 flex items-center justify-between border-t border-neutral-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-800"
+              className="px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-800"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-xs px-5 py-2.5 rounded-full shadow-sm transition-colors flex items-center gap-1.5"
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-colors"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>{isSubmitting ? 'Submitting...' : 'Submit to Admin Queue'}</span>
+              {isSubmitting ? 'Submitting...' : 'Submit Report'}
             </button>
           </div>
         </form>

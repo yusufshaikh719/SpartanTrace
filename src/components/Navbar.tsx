@@ -7,248 +7,202 @@ import {
   Shield,
   User,
   LogOut,
+  SlidersHorizontal,
   Database,
-  MapPin,
-  CheckCircle2,
   X,
   Sparkles,
-  ChevronDown,
-  Check,
+  Layers,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { useChat } from '../context/ChatContext';
-import { SJSU_LOCATIONS } from '../utils/constants';
 
 interface NavbarProps {
   searchTerm: string;
   onSearchChange: (val: string) => void;
-  selectedLocation: string;
-  onLocationChange: (loc: string) => void;
+  onOpenFilterDrawer: () => void;
+  activeFilterCount: number;
   onOpenPostModal: () => void;
   onOpenAlertsModal: () => void;
   onOpenAdminModal: () => void;
   onOpenAuthModal: () => void;
   onOpenSupabaseModal: () => void;
   onOpenNotifications: () => void;
-  isSupabaseLive: boolean;
+  viewMode: 'all' | 'my-listings';
+  onViewModeChange: (mode: 'all' | 'my-listings') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   searchTerm,
   onSearchChange,
-  selectedLocation,
-  onLocationChange,
+  onOpenFilterDrawer,
+  activeFilterCount,
   onOpenPostModal,
   onOpenAlertsModal,
   onOpenAdminModal,
   onOpenAuthModal,
   onOpenSupabaseModal,
   onOpenNotifications,
-  isSupabaseLive,
+  viewMode,
+  onViewModeChange,
 }) => {
   const { user, isAuthenticated, isAdmin, logout, switchUser, availableUsers } = useAuth();
   const { unreadCount } = useNotifications();
   const { conversations, openChatWithConversation } = useChat();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3 sm:gap-6">
-          {/* Logo & Brand Identity */}
+          {/* Minimal Brand Identity */}
           <div
             className="flex items-center gap-2.5 cursor-pointer shrink-0"
-            onClick={() => onSearchChange('')}
+            onClick={() => {
+              onSearchChange('');
+              onViewModeChange('all');
+            }}
           >
-            <div className="w-9 h-9 rounded-xl bg-sjsu-navy text-sjsu-gold flex items-center justify-center font-black text-sm tracking-tighter shadow-sm border border-sjsu-gold/30">
-              ST
+            <div className="w-8 h-8 rounded-lg bg-neutral-900 text-amber-400 flex items-center justify-center font-black text-sm tracking-tight shadow-2xs">
+              S
             </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5 leading-none">
-                <span className="font-extrabold text-lg text-slate-900 tracking-tight">
-                  Spartan<span className="text-sjsu-500">Trace</span>
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200/80 px-1.5 py-0.5 rounded">
-                  SJSU
-                </span>
-              </div>
-              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-                Campus Item Recovery
-              </span>
-            </div>
+            <span className="font-bold text-lg text-neutral-900 tracking-tight">
+              SpartanTrace
+            </span>
           </div>
 
-          {/* Unified Sleek Search & Campus Location Input */}
-          <div className="flex-1 max-w-2xl flex items-center bg-slate-50 border border-slate-200 rounded-xl hover:border-slate-300 focus-within:border-sjsu-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-sjsu-500/10 transition-all px-3 py-1.5">
-            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+          {/* Minimal Center Search Bar with Inline Filter Trigger */}
+          <div className="flex-1 max-w-xl flex items-center bg-neutral-100/80 hover:bg-neutral-100 rounded-xl px-3 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-neutral-900/10 focus-within:border-neutral-300 border border-transparent transition-all">
+            <Search className="w-4 h-4 text-neutral-400 shrink-0" />
             <input
               type="text"
-              placeholder="Search lost items (e.g. AirPods, keys, backpack)..."
+              placeholder="Search items..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-transparent border-none text-xs sm:text-sm px-2.5 focus:outline-none text-slate-800 placeholder-slate-400"
+              className="w-full bg-transparent border-none text-xs sm:text-sm px-2.5 focus:outline-none text-neutral-900 placeholder-neutral-400"
             />
 
             {searchTerm && (
               <button
                 onClick={() => onSearchChange('')}
-                className="text-slate-400 hover:text-slate-600 p-1"
-                title="Clear search"
+                className="text-neutral-400 hover:text-neutral-600 p-1 mr-1"
+                title="Clear"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
 
-            {/* Compact Location Pill */}
-            <div className="relative shrink-0 border-l border-slate-200 pl-2">
-              <button
-                type="button"
-                onClick={() => setShowLocationDropdown(!showLocationDropdown)}
-                className="flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-sjsu-500 py-1 px-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                <MapPin className="w-3.5 h-3.5 text-sjsu-500 shrink-0" />
-                <span className="hidden md:inline max-w-[120px] truncate">
-                  {selectedLocation === 'All' ? 'All SJSU' : selectedLocation.split('-')[0]}
+            {/* Filter Trigger Button */}
+            <button
+              type="button"
+              onClick={onOpenFilterDrawer}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 transition-colors ${
+                activeFilterCount > 0
+                  ? 'bg-neutral-900 text-white'
+                  : 'bg-white text-neutral-700 hover:bg-neutral-200/80 border border-neutral-200/60 shadow-2xs'
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-amber-400 text-neutral-950 font-bold text-[10px] flex items-center justify-center">
+                  {activeFilterCount}
                 </span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              </button>
-
-              {showLocationDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 max-h-72 overflow-y-auto">
-                  <div className="px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Campus Buildings
-                  </div>
-                  <button
-                    onClick={() => {
-                      onLocationChange('All');
-                      setShowLocationDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs font-medium flex items-center justify-between hover:bg-slate-50 ${
-                      selectedLocation === 'All' ? 'text-sjsu-500 font-bold bg-blue-50/50' : 'text-slate-700'
-                    }`}
-                  >
-                    <span>All SJSU Campus</span>
-                    {selectedLocation === 'All' && <Check className="w-3.5 h-3.5" />}
-                  </button>
-                  {SJSU_LOCATIONS.map((loc) => (
-                    <button
-                      key={loc}
-                      onClick={() => {
-                        onLocationChange(loc);
-                        setShowLocationDropdown(false);
-                      }}
-                      className={`w-full text-left px-3 py-1.5 text-xs truncate flex items-center justify-between hover:bg-slate-50 ${
-                        selectedLocation === loc ? 'text-sjsu-500 font-bold bg-blue-50/50' : 'text-slate-600'
-                      }`}
-                    >
-                      <span className="truncate">{loc}</span>
-                      {selectedLocation === loc && <Check className="w-3.5 h-3.5 shrink-0 ml-1" />}
-                    </button>
-                  ))}
-                </div>
               )}
-            </div>
+            </button>
           </div>
 
-          {/* Right Action Icons & User Menu */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Report Found Item Button (Clean SJSU Spartan styling) */}
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Post Item */}
             <button
               onClick={onOpenPostModal}
-              className="flex items-center gap-1.5 bg-sjsu-500 hover:bg-sjsu-600 active:bg-sjsu-700 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-xl shadow-xs transition-colors"
+              className="flex items-center gap-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl transition-colors shadow-2xs"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Post Found Item</span>
-              <span className="sm:hidden">Post</span>
+              <span className="hidden sm:inline">Post Item</span>
             </button>
 
-            {/* Direct Messages Icon */}
+            {/* Messages */}
             <button
               onClick={() => {
                 if (conversations.length > 0) {
                   openChatWithConversation(conversations[0].id);
                 } else {
-                  alert('No active chats. Start a chat by claiming a found item or reviewing a claim on your item.');
+                  alert('No active messages yet. Claims will open a message thread.');
                 }
               }}
-              className="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
-              title="Direct Messages"
+              className="relative p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-xl transition-colors"
+              title="Messages"
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
               {conversations.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sjsu-500 rounded-full ring-2 ring-white" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white" />
               )}
             </button>
 
-            {/* Notifications Bell */}
+            {/* Notifications */}
             <button
               onClick={onOpenNotifications}
-              className="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+              className="relative p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-xl transition-colors"
               title="Notifications"
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
-                  {unreadCount}
-                </span>
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-white" />
               )}
             </button>
 
-            {/* User Profile / Menu */}
-            <div className="relative ml-1">
+            {/* Profile Avatar / Menu */}
+            <div className="relative">
               {isAuthenticated && user ? (
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 p-1 pl-2 pr-1.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 transition-colors"
+                  className="w-8 h-8 rounded-xl bg-neutral-200 text-neutral-800 hover:ring-2 hover:ring-neutral-900/10 font-bold text-xs flex items-center justify-center transition-all"
                 >
-                  <span className="text-xs font-semibold text-slate-700 hidden lg:inline max-w-[90px] truncate">
-                    {user.name.split(' ')[0]}
-                  </span>
-                  <div className="w-7 h-7 rounded-lg bg-slate-900 text-white font-bold text-xs flex items-center justify-center">
-                    {user.name.charAt(0)}
-                  </div>
+                  {user.name.charAt(0)}
                 </button>
               ) : (
                 <button
                   onClick={onOpenAuthModal}
-                  className="flex items-center gap-1.5 text-xs font-bold text-sjsu-500 hover:text-sjsu-600 bg-sjsu-50 hover:bg-sjsu-100 px-3 py-2 rounded-xl transition-colors"
+                  className="text-xs font-semibold text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 px-3 py-2 rounded-xl transition-colors"
                 >
-                  <User className="w-4 h-4" />
-                  <span>Log in</span>
+                  Sign in
                 </button>
               )}
 
-              {/* User Dropdown Menu */}
+              {/* User Dropdown */}
               {showUserMenu && user && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-slate-100">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
-                      {user.isAdmin && (
-                        <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                          Admin
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                    <div className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-emerald-700">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 inline" /> Verified SJSU Account
-                    </div>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-neutral-200/80 py-1.5 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                  <div className="px-4 py-2.5 border-b border-neutral-100">
+                    <p className="text-xs font-bold text-neutral-900 truncate">{user.name}</p>
+                    <p className="text-[11px] text-neutral-500 truncate">{user.email}</p>
                   </div>
 
-                  {/* Actions inside menu */}
                   <div className="py-1">
+                    <button
+                      onClick={() => {
+                        onViewModeChange(viewMode === 'my-listings' ? 'all' : 'my-listings');
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 flex items-center justify-between"
+                    >
+                      <span>{viewMode === 'my-listings' ? 'View Campus Feed' : 'My Listings'}</span>
+                      {viewMode === 'my-listings' && (
+                        <span className="text-[10px] text-blue-600 font-bold">Active</span>
+                      )}
+                    </button>
+
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
                         onOpenAlertsModal();
                       }}
-                      className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      className="w-full text-left px-4 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 flex items-center gap-2"
                     >
-                      <Sparkles className="w-4 h-4 text-amber-500" /> Lost Item Alerts (FR16)
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Item Alerts</span>
                     </button>
 
                     {user.isAdmin && (
@@ -257,9 +211,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                           setShowUserMenu(false);
                           onOpenAdminModal();
                         }}
-                        className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 flex items-center gap-2"
                       >
-                        <Shield className="w-4 h-4 text-sjsu-500" /> Admin Moderation Queue
+                        <Shield className="w-3.5 h-3.5 text-neutral-700" />
+                        <span>Administration</span>
                       </button>
                     )}
 
@@ -268,24 +223,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setShowUserMenu(false);
                         onOpenSupabaseModal();
                       }}
-                      className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between"
+                      className="w-full text-left px-4 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 flex items-center gap-2"
                     >
-                      <div className="flex items-center gap-2">
-                        <Database className="w-4 h-4 text-slate-500" />
-                        <span>Supabase Config</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400">
-                        {isSupabaseLive ? 'Live' : 'Local Demo'}
-                      </span>
+                      <Database className="w-3.5 h-3.5 text-neutral-400" />
+                      <span>Database Connection</span>
                     </button>
                   </div>
 
-                  {/* Quick Role Switcher for graders/testing */}
-                  <div className="border-t border-slate-100 pt-2 px-4 pb-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Switch Role (Grading Demo)
+                  {/* Account Switcher */}
+                  <div className="border-t border-neutral-100 pt-1.5 px-3 pb-1">
+                    <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider px-1 mb-1">
+                      Accounts
                     </p>
-                    <div className="grid grid-cols-3 gap-1">
+                    <div className="space-y-0.5">
                       {availableUsers.map((u) => (
                         <button
                           key={u.id}
@@ -293,20 +243,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                             switchUser(u.id);
                             setShowUserMenu(false);
                           }}
-                          className={`px-2 py-1.5 rounded-lg text-left text-xs transition-colors ${
+                          className={`w-full px-2.5 py-1.5 rounded-lg text-left text-xs flex items-center justify-between transition-colors ${
                             user.id === u.id
-                              ? 'bg-sjsu-50 text-sjsu-500 font-bold border border-sjsu-200'
-                              : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/60'
+                              ? 'bg-neutral-100 text-neutral-900 font-bold'
+                              : 'text-neutral-600 hover:bg-neutral-50'
                           }`}
                         >
-                          <p className="truncate font-medium">{u.name.split(' ')[0]}</p>
-                          <p className="text-[10px] text-slate-400 capitalize">{u.role}</p>
+                          <span className="truncate">{u.name}</span>
+                          <span className="text-[10px] text-neutral-400 capitalize">{u.role}</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-1 mt-1">
+                  <div className="border-t border-neutral-100 pt-1 mt-1">
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
@@ -314,7 +264,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 font-medium flex items-center gap-2"
                     >
-                      <LogOut className="w-4 h-4" /> Sign Out
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign out</span>
                     </button>
                   </div>
                 </div>

@@ -2,14 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Inbox,
   Sparkles,
-  Database,
-  History,
 } from 'lucide-react';
 import { Listing } from './types';
 import { dbService } from './services/db';
 import { useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
-import { ExploreToolbar } from './components/ExploreToolbar';
+import { CategoryNav } from './components/CategoryNav';
+import { FilterDrawer } from './components/FilterDrawer';
 import { ItemCard } from './components/ItemCard';
 import { ItemDetailModal } from './components/ItemDetailModal';
 import { PostItemModal } from './components/PostItemModal';
@@ -26,7 +25,7 @@ import { SupabaseModal } from './components/SupabaseModal';
 export const App: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
 
-  // Search & Filter state (FR11, FR12, FR13)
+  // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedLocation, setSelectedLocation] = useState('All');
@@ -37,9 +36,9 @@ export const App: React.FC = () => {
   // Listings data
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSupabaseLive, setIsSupabaseLive] = useState(false);
 
-  // Active Modals
+  // Active Modals & Drawer
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
@@ -59,7 +58,7 @@ export const App: React.FC = () => {
     contentSnippet: string;
   } | null>(null);
 
-  // Calculate Date bounds for filtering (FR13)
+  // Calculate Date bounds for filtering
   const getDateRangeBounds = (range: string): { dateFrom?: string; dateTo?: string } => {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -84,9 +83,6 @@ export const App: React.FC = () => {
     setIsLoading(true);
     const { dateFrom, dateTo } = getDateRangeBounds(dateRange);
 
-    const isLive = await dbService.isSupabaseConnected();
-    setIsSupabaseLive(isLive);
-
     const items = await dbService.getListings({
       keyword: searchTerm,
       category: selectedCategory,
@@ -106,21 +102,28 @@ export const App: React.FC = () => {
     fetchListings();
   }, [fetchListings]);
 
-  const clearAllFilters = () => {
-    setSearchTerm('');
+  const activeFilterCount =
+    (selectedCategory !== 'All' ? 1 : 0) +
+    (selectedLocation !== 'All' ? 1 : 0) +
+    (dateRange !== 'all' ? 1 : 0) +
+    (sortBy !== 'relevance' ? 1 : 0);
+
+  const resetAllFilters = () => {
     setSelectedCategory('All');
     setSelectedLocation('All');
     setDateRange('all');
+    setSortBy('relevance');
+    setSearchTerm('');
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 flex flex-col text-slate-800">
-      {/* Sleek, Uncluttered Navigation Bar */}
+    <div className="min-h-screen bg-neutral-50/40 flex flex-col text-neutral-800">
+      {/* Navbar */}
       <Navbar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        selectedLocation={selectedLocation}
-        onLocationChange={setSelectedLocation}
+        onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
+        activeFilterCount={activeFilterCount}
         onOpenPostModal={() => {
           if (!isAuthenticated) {
             setIsAuthModalOpen(true);
@@ -139,44 +142,33 @@ export const App: React.FC = () => {
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
-        isSupabaseLive={isSupabaseLive}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
-      {/* Unified Category & Exploration Toolbar */}
-      <ExploreToolbar
+      {/* Category Nav & Active Filter Chips */}
+      <CategoryNav
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         selectedLocation={selectedLocation}
         onLocationChange={setSelectedLocation}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
         searchTerm={searchTerm}
         onClearSearch={() => setSearchTerm('')}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        isAuthenticated={isAuthenticated}
         totalResults={listings.length}
-        onClearAllFilters={clearAllFilters}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
-        {/* Banner if in 'My Listings' view */}
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full">
         {viewMode === 'my-listings' && (
-          <div className="mb-5 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex items-center justify-between text-xs text-sjsu-700">
-            <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-sjsu-500 shrink-0" />
-              <span>
-                <strong>Your Listings History:</strong> Displays all items you reported found, including returned ones (FR08).
-              </span>
-            </div>
+          <div className="mb-4 flex items-center justify-between text-xs text-neutral-600 bg-white border border-neutral-200/80 px-4 py-3 rounded-2xl">
+            <span>Viewing items you reported</span>
             <button
               onClick={() => setViewMode('all')}
-              className="font-semibold underline hover:text-sjsu-900"
+              className="text-neutral-900 font-semibold hover:underline"
             >
-              Back to Campus Feed
+              Back to feed
             </button>
           </div>
         )}
@@ -187,43 +179,42 @@ export const App: React.FC = () => {
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
               <div
                 key={n}
-                className="bg-white rounded-2xl border border-slate-200/80 p-3 h-64 animate-pulse flex flex-col justify-between"
+                className="bg-white rounded-2xl border border-neutral-200/60 p-3 h-64 animate-pulse flex flex-col justify-between"
               >
-                <div className="bg-slate-100 aspect-4/3 rounded-xl mb-3" />
+                <div className="bg-neutral-100 aspect-4/3 rounded-xl mb-3" />
                 <div className="space-y-2">
-                  <div className="h-4 bg-slate-100 rounded w-3/4" />
-                  <div className="h-3 bg-slate-100 rounded w-1/2" />
+                  <div className="h-4 bg-neutral-100 rounded w-3/4" />
+                  <div className="h-3 bg-neutral-100 rounded w-1/2" />
                 </div>
               </div>
             ))}
           </div>
         ) : listings.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto my-12 space-y-3">
-            <div className="w-12 h-12 bg-slate-100 text-slate-500 rounded-2xl flex items-center justify-center mx-auto">
-              <Inbox className="w-6 h-6" />
+          <div className="bg-white rounded-3xl border border-neutral-200/80 p-12 text-center max-w-sm mx-auto my-12 space-y-3">
+            <div className="w-10 h-10 bg-neutral-100 text-neutral-400 rounded-xl flex items-center justify-center mx-auto">
+              <Inbox className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">No items match your criteria</h3>
-              <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                Try broadening your filters, or set an alert to be notified when someone reports it.
+              <h3 className="text-sm font-semibold text-neutral-900">No items found</h3>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Try resetting filters or set an alert for when it is found.
               </p>
             </div>
             <div className="flex items-center justify-center gap-2 pt-2">
               <button
-                onClick={clearAllFilters}
-                className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+                onClick={resetAllFilters}
+                className="px-3.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-medium rounded-xl transition-colors"
               >
-                Reset Filters
+                Reset filters
               </button>
               <button
                 onClick={() => {
                   if (!isAuthenticated) setIsAuthModalOpen(true);
                   else setIsAlertsModalOpen(true);
                 }}
-                className="px-3.5 py-1.5 bg-sjsu-500 hover:bg-sjsu-600 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium rounded-xl transition-colors"
               >
-                <Sparkles className="w-3.5 h-3.5 text-sjsu-gold" />
-                <span>Create Lost Alert</span>
+                Set alert
               </button>
             </div>
           </div>
@@ -241,34 +232,29 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Minimalist Campus Footer */}
-      <footer className="bg-white border-t border-slate-200/80 py-6 text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-sjsu-navy text-sjsu-gold font-bold flex items-center justify-center text-[10px]">
-              ST
-            </div>
-            <span className="font-semibold text-slate-700">SpartanTrace</span>
-            <span>• San Jose State University Item Recovery</span>
-          </div>
-
-          <div className="flex items-center gap-3 text-slate-500">
-            <button
-              onClick={() => setIsSupabaseModalOpen(true)}
-              className="hover:text-sjsu-500 flex items-center gap-1 transition-colors"
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isSupabaseLive ? 'bg-emerald-500' : 'bg-blue-400'
-                }`}
-              />
-              <span>{isSupabaseLive ? 'Supabase Free Tier (Live)' : 'Supabase Demo (Local)'}</span>
-            </button>
-            <span>•</span>
-            <span className="text-slate-400">Yusuf, Jacob, Ziyad, Jagvir</span>
-          </div>
+      {/* Minimal Footer */}
+      <footer className="bg-white border-t border-neutral-100 py-6 text-xs text-neutral-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          <span className="font-semibold text-neutral-700">SpartanTrace</span>
+          <span className="text-[11px] text-neutral-400">San Jose State University</span>
         </div>
       </footer>
+
+      {/* Filter Drawer */}
+      <FilterDrawer
+        isOpen={isFilterDrawerOpen}
+        onClose={() => setIsFilterDrawerOpen(false)}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        selectedLocation={selectedLocation}
+        onLocationChange={setSelectedLocation}
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        totalResults={listings.length}
+        onReset={resetAllFilters}
+      />
 
       {/* Modals & Slide-overs */}
       {selectedListing && (
@@ -306,7 +292,6 @@ export const App: React.FC = () => {
           onClose={() => setIsPostModalOpen(false)}
           onSuccess={() => {
             fetchListings();
-            alert('Your found item has been published (FR03).');
           }}
         />
       )}
@@ -318,7 +303,6 @@ export const App: React.FC = () => {
           onSuccess={(updated) => {
             fetchListings();
             setSelectedListing(updated);
-            alert('Listing updated successfully (FR10).');
           }}
         />
       )}
@@ -329,7 +313,6 @@ export const App: React.FC = () => {
           onClose={() => setClaimingListing(null)}
           onSuccess={() => {
             fetchListings();
-            alert('Claim submitted! Direct chat opened with finder.');
           }}
         />
       )}

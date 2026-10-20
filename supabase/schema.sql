@@ -1,12 +1,12 @@
 -- ============================================================================
 -- SpartanTrace - Supabase PostgreSQL Database Schema
--- Designed for Supabase Free Tier
+-- Run this script in your Supabase SQL Editor (Dashboard -> SQL Editor -> New Query)
 -- ============================================================================
 
--- 1. Profiles Table (SJSU verified users)
+-- 1. Profiles Table (SJSU verified user accounts)
 CREATE TABLE IF NOT EXISTS profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL CHECK (email LIKE '%@sjsu.edu'),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   is_admin BOOLEAN DEFAULT FALSE,
   is_suspended BOOLEAN DEFAULT FALSE,
@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- 2. Listings Table (Found Items)
 CREATE TABLE IF NOT EXISTS listings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  finder_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY DEFAULT ('listing-' || floor(extract(epoch from now()) * 1000)::text),
+  finder_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   finder_name TEXT NOT NULL,
   finder_email TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS listings (
   photo_url TEXT NOT NULL,
   category TEXT NOT NULL,
   location_found TEXT NOT NULL,
-  date_found DATE NOT NULL CHECK (date_found <= CURRENT_DATE),
+  date_found DATE NOT NULL,
   status TEXT NOT NULL DEFAULT 'Available' CHECK (status IN ('Available', 'Pending', 'Claimed', 'Returned')),
   return_date TIMESTAMPTZ,
   is_removed BOOLEAN DEFAULT FALSE,
@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS listings (
 
 -- 3. Claims Table
 CREATE TABLE IF NOT EXISTS claims (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE,
-  claimant_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY DEFAULT ('claim-' || floor(extract(epoch from now()) * 1000)::text),
+  listing_id TEXT REFERENCES listings(id) ON DELETE CASCADE,
+  claimant_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   claimant_name TEXT NOT NULL,
   claimant_email TEXT NOT NULL,
   proof_description TEXT NOT NULL,
@@ -50,29 +50,29 @@ CREATE TABLE IF NOT EXISTS claims (
 
 -- 4. Conversations & Direct Messages
 CREATE TABLE IF NOT EXISTS conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  claim_id UUID REFERENCES claims(id) ON DELETE CASCADE,
-  listing_id UUID REFERENCES listings(id) ON DELETE CASCADE,
-  finder_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  claimant_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY DEFAULT ('conv-' || floor(extract(epoch from now()) * 1000)::text),
+  claim_id TEXT REFERENCES claims(id) ON DELETE CASCADE,
+  listing_id TEXT REFERENCES listings(id) ON DELETE CASCADE,
+  finder_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
+  claimant_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
-  sender_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY DEFAULT ('msg-' || floor(extract(epoch from now()) * 1000)::text),
+  conversation_id TEXT REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   sender_name TEXT NOT NULL,
   content TEXT NOT NULL,
   is_removed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. Lost-Item Alerts (FR16, FR25)
+-- 5. Lost-Item Alerts
 CREATE TABLE IF NOT EXISTS lost_item_alerts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY DEFAULT ('alert-' || floor(extract(epoch from now()) * 1000)::text),
+  user_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   keywords TEXT NOT NULL,
   category TEXT,
   location TEXT,
@@ -80,10 +80,10 @@ CREATE TABLE IF NOT EXISTS lost_item_alerts (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. Notifications (FR24)
+-- 6. Notifications
 CREATE TABLE IF NOT EXISTS notifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY DEFAULT ('notif-' || floor(extract(epoch from now()) * 1000)::text),
+  user_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
   title TEXT NOT NULL,
   message TEXT NOT NULL,
@@ -93,28 +93,28 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Content Reports (FR26-FR28)
+-- 7. Content Reports
 CREATE TABLE IF NOT EXISTS reports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  reporter_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY DEFAULT ('report-' || floor(extract(epoch from now()) * 1000)::text),
+  reporter_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   reporter_name TEXT NOT NULL,
   content_type TEXT NOT NULL CHECK (content_type IN ('listing', 'message')),
-  content_id UUID NOT NULL,
-  owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  content_id TEXT NOT NULL,
+  owner_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   owner_name TEXT NOT NULL,
   reason TEXT NOT NULL,
   content_snippet TEXT,
   status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Dismissed', 'Confirmed')),
-  resolved_by UUID REFERENCES profiles(id),
+  resolved_by TEXT,
   resolved_at TIMESTAMPTZ,
   admin_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. Admin Audit Logs (FR32)
+-- 8. Admin Audit Logs
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_id UUID REFERENCES profiles(id),
+  id TEXT PRIMARY KEY DEFAULT ('audit-' || floor(extract(epoch from now()) * 1000)::text),
+  admin_id TEXT REFERENCES profiles(id),
   admin_name TEXT NOT NULL,
   action TEXT NOT NULL,
   target_id TEXT NOT NULL,
@@ -123,11 +123,11 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Full Text Search Index for listings
+-- Full-text search index
 CREATE INDEX IF NOT EXISTS idx_listings_search 
 ON listings USING GIN (to_tsvector('english', title || ' ' || description));
 
--- Enable Row Level Security (RLS) on Supabase
+-- Enable Row Level Security (RLS)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE claims ENABLE ROW LEVEL SECURITY;
@@ -138,8 +138,8 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Permissive policies for anon / authenticated access in client demo
-CREATE POLICY "Public read active listings" ON listings FOR SELECT USING (is_removed = FALSE);
+-- Permissive policies for anonymous / authenticated access
+CREATE POLICY "Public read active listings" ON listings FOR SELECT USING (true);
 CREATE POLICY "Users can insert listings" ON listings FOR INSERT WITH CHECK (true);
 CREATE POLICY "Users can update listings" ON listings FOR UPDATE USING (true);
 
@@ -150,6 +150,6 @@ CREATE POLICY "Allow claims" ON claims FOR ALL USING (true);
 CREATE POLICY "Allow conversations" ON conversations FOR ALL USING (true);
 CREATE POLICY "Allow messages" ON messages FOR ALL USING (true);
 CREATE POLICY "Allow notifications" ON notifications FOR ALL USING (true);
-CREATE POLICY "Allow alerts" ON alerts FOR ALL USING (true);
+CREATE POLICY "Allow lost_item_alerts" ON lost_item_alerts FOR ALL USING (true);
 CREATE POLICY "Allow reports" ON reports FOR ALL USING (true);
 CREATE POLICY "Allow audit logs" ON admin_audit_logs FOR ALL USING (true);
