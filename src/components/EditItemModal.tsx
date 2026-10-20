@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Upload, AlertCircle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { Listing, ItemCategory } from '../types';
-import { ITEM_CATEGORIES, SJSU_LOCATIONS, SAMPLE_PHOTOS } from '../utils/constants';
+import { ITEM_CATEGORIES, SJSU_LOCATIONS } from '../utils/constants';
 import { dbService } from '../services/db';
 
 interface EditItemModalProps {
@@ -74,17 +74,17 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="relative bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-gray-100 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="relative bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/90">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
-            <h2 className="text-lg font-extrabold text-gray-900">Edit Found Item (FR09)</h2>
-            <p className="text-xs text-gray-500">Update listing details without creating duplicates</p>
+            <h2 className="text-base font-bold text-slate-900">Edit Found Item (FR09)</h2>
+            <p className="text-xs text-slate-500">Update listing details without creating duplicates</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 rounded-full transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -93,27 +93,27 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
         {/* Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Title *
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-xl px-3.5 py-2 focus:outline-emerald-500"
+              className="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3.5 py-2 focus:outline-sjsu-500"
             />
             {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                 Category *
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ItemCategory)}
-                className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2 bg-white focus:outline-emerald-500"
+                className="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white focus:outline-sjsu-500"
               >
                 {ITEM_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -124,7 +124,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                 Date Found *
               </label>
               <input
@@ -132,20 +132,20 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
                 max={todayStr}
                 value={dateFound}
                 onChange={(e) => setDateFound(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2 bg-white focus:outline-emerald-500"
+                className="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white focus:outline-sjsu-500"
               />
               {errors.dateFound && <p className="text-xs text-red-500 mt-1">{errors.dateFound}</p>}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Location Found *
             </label>
             <select
               value={locationFound}
               onChange={(e) => setLocationFound(e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-xl px-3 py-2 bg-white focus:outline-emerald-500"
+              className="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white focus:outline-sjsu-500"
             >
               {SJSU_LOCATIONS.map((loc) => (
                 <option key={loc} value={loc}>
@@ -156,32 +156,32 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Description *
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-sm border border-gray-300 rounded-xl p-3 focus:outline-emerald-500"
+              className="w-full text-xs sm:text-sm border border-slate-300 rounded-xl p-3 focus:outline-sjsu-500"
             />
             {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
           </div>
 
-          <div className="pt-2 flex items-center justify-between border-t border-gray-100">
+          <div className="pt-2 flex items-center justify-between border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-800"
+              className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-full shadow-sm"
+              className="bg-sjsu-500 hover:bg-sjsu-600 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-colors"
             >
-              {isSubmitting ? 'Saving...' : 'Save Listing Edits'}
+              {isSubmitting ? 'Saving...' : 'Save Edits'}
             </button>
           </div>
         </form>

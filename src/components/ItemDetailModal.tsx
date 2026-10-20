@@ -3,16 +3,13 @@ import {
   X,
   MapPin,
   Calendar,
-  Tag,
   ShieldCheck,
   AlertTriangle,
   MessageCircle,
   Edit3,
   CheckCircle,
   Clock,
-  ArrowRight,
   User,
-  Share2,
 } from 'lucide-react';
 import { Listing, Claim } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -37,7 +34,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   onOpenReportModal,
   onListingUpdated,
 }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const { openChatForClaim } = useChat();
 
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -93,23 +90,23 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="relative bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-gray-100 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="relative bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Top Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50/80">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-xs uppercase tracking-wider text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full">
+            <span className="font-semibold text-xs text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-md">
               {listing.category}
             </span>
             <span
-              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+              className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${
                 listing.status === 'Available'
-                  ? 'bg-emerald-600 text-white'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : listing.status === 'Pending'
-                  ? 'bg-amber-500 text-white'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : listing.status === 'Claimed'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-white'
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-slate-100 text-slate-700 border-slate-200'
               }`}
             >
               {listing.status === 'Returned' ? 'Returned to Owner ✓' : listing.status}
@@ -118,17 +115,17 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 rounded-full transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="overflow-y-auto p-5 sm:p-6 space-y-6">
+        <div className="overflow-y-auto p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* Left: Image */}
-            <div className="relative rounded-2xl overflow-hidden bg-gray-100 aspect-4/3 w-full border border-gray-200/80">
+            <div className="relative rounded-2xl overflow-hidden bg-slate-100 aspect-4/3 w-full border border-slate-200/80">
               <img
                 src={listing.photoUrl}
                 alt={listing.title}
@@ -138,7 +135,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=800&q=80';
                 }}
               />
-              <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-1 rounded-md">
+              <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[11px] font-medium px-2.5 py-1 rounded-md">
                 Found on {formatDate(listing.dateFound)}
               </div>
             </div>
@@ -146,45 +143,45 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             {/* Right: Info */}
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
                   {listing.title}
                 </h2>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-2">
-                  <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="font-semibold text-gray-700">{listing.locationFound}</span>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-2">
+                  <MapPin className="w-4 h-4 text-sjsu-500 shrink-0" />
+                  <span className="font-medium">{listing.locationFound}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
                   <Clock className="w-3.5 h-3.5" />
                   <span>Reported {formatRelativeTime(listing.createdAt)}</span>
                 </div>
               </div>
 
               {/* Description */}
-              <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                  Finder's Description
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Finder Notes
                 </p>
-                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-line leading-relaxed">
                   {listing.description}
                 </p>
               </div>
 
               {/* Finder Card */}
-              <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-center justify-between">
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-sjsu-navy text-white font-bold flex items-center justify-center text-xs">
                     {listing.finderName.charAt(0)}
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <span className="text-xs font-bold text-gray-900">{listing.finderName}</span>
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-xs font-bold text-slate-900">{listing.finderName}</span>
+                      <ShieldCheck className="w-3.5 h-3.5 text-sjsu-500" />
                     </div>
-                    <span className="text-[11px] text-gray-500">{listing.finderEmail}</span>
+                    <span className="text-[11px] text-slate-500">{listing.finderEmail}</span>
                   </div>
                 </div>
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
-                  Verified SJSU
+                <span className="text-[10px] bg-blue-50 text-sjsu-500 font-semibold px-2 py-0.5 rounded border border-blue-200/60">
+                  SJSU Verified
                 </span>
               </div>
 
@@ -196,14 +193,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     {listing.status === 'Available' ? (
                       <button
                         onClick={() => onOpenClaimModal(listing)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                        className="w-full bg-sjsu-500 hover:bg-sjsu-600 active:bg-sjsu-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 text-sm"
                       >
                         <CheckCircle className="w-4 h-4" />
                         <span>Claim This Item (Prove Ownership)</span>
                       </button>
                     ) : (
-                      <div className="p-3 bg-gray-100 rounded-xl text-xs text-gray-600 text-center font-medium">
-                        This item is currently {listing.status.toLowerCase()} and is not accepting new claims.
+                      <div className="p-3 bg-slate-100 rounded-xl text-xs text-slate-600 text-center font-medium">
+                        This item is currently {listing.status.toLowerCase()} and is not accepting claims.
                       </div>
                     )}
                   </>
@@ -212,16 +209,16 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 {/* Finder Actions (Owner of listing) */}
                 {isOwner && (
                   <div className="space-y-2">
-                    <div className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                      Finder Management Controls
-                    </div>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Finder Controls
+                    </p>
 
                     <div className="grid grid-cols-2 gap-2">
                       {/* FR09, FR10: Edit Listing (if not returned) */}
                       {listing.status !== 'Returned' && (
                         <button
                           onClick={() => onOpenEditModal(listing)}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold rounded-xl text-xs transition-colors"
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-xl text-xs transition-colors"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Edit Details</span>
@@ -233,7 +230,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         <button
                           disabled={statusActionLoading}
                           onClick={() => handleUpdateStatus('Pending')}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl text-xs transition-colors"
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl text-xs transition-colors"
                         >
                           <span>Set to Pending</span>
                         </button>
@@ -244,7 +241,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         <button
                           disabled={statusActionLoading}
                           onClick={() => handleUpdateStatus('Claimed')}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition-colors"
+                          className="flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl text-xs transition-colors"
                         >
                           <span>Accept & Mark Claimed</span>
                         </button>
@@ -255,7 +252,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         <button
                           disabled={statusActionLoading}
                           onClick={() => handleUpdateStatus('Returned')}
-                          className="col-span-2 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
+                          className="col-span-2 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs transition-colors shadow-xs"
                         >
                           <CheckCircle className="w-4 h-4" />
                           <span>Confirm Handover & Complete Return (FR07)</span>
@@ -266,17 +263,17 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 )}
 
                 {/* Report Content (FR26) */}
-                <div className="pt-2 flex items-center justify-between text-xs text-gray-500">
+                <div className="pt-2 flex items-center justify-between text-xs text-slate-400">
                   <button
                     onClick={() =>
                       onOpenReportModal('listing', listing.id, listing.finderId, listing.finderName, listing.title)
                     }
-                    className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:underline font-medium"
+                    className="flex items-center gap-1 text-red-500 hover:text-red-700 hover:underline font-medium text-xs"
                   >
                     <AlertTriangle className="w-3.5 h-3.5" />
                     <span>Report this listing</span>
                   </button>
-                  <span className="text-[11px] text-gray-400">ID: {listing.id}</span>
+                  <span className="text-[11px] font-mono">ID: {listing.id}</span>
                 </div>
               </div>
             </div>
@@ -284,18 +281,18 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
           {/* FR04: Claims List (Visible only to Finder who created listing) */}
           {isOwner && (
-            <div className="border-t border-gray-200 pt-5 mt-6">
+            <div className="border-t border-slate-200 pt-5 mt-6">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-sm text-gray-900">
+                <h3 className="font-bold text-sm text-slate-900">
                   Submitted Ownership Claims ({claims.length})
                 </h3>
-                <span className="text-xs text-gray-500">Only visible to you (Finder)</span>
+                <span className="text-xs text-slate-400">Only visible to you (Finder)</span>
               </div>
 
               {isLoadingClaims ? (
-                <div className="py-4 text-center text-xs text-gray-400">Loading claims...</div>
+                <div className="py-4 text-center text-xs text-slate-400">Loading claims...</div>
               ) : claims.length === 0 ? (
-                <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4 text-center text-xs text-gray-500">
+                <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 text-center text-xs text-slate-500">
                   No claims submitted yet. Lookers searching for this item will appear here.
                 </div>
               ) : (
@@ -303,25 +300,25 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   {claims.map((claim) => (
                     <div
                       key={claim.id}
-                      className="bg-white border border-gray-200 rounded-xl p-3.5 shadow-2xs space-y-2"
+                      className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs space-y-2"
                     >
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-gray-900">{claim.claimantName}</span>
+                            <span className="font-bold text-xs text-slate-900">{claim.claimantName}</span>
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
                                 claim.status === 'Accepted'
-                                  ? 'bg-emerald-100 text-emerald-800'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                   : claim.status === 'Rejected'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-amber-100 text-amber-800'
+                                  ? 'bg-red-50 text-red-700 border border-red-200'
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
                               }`}
                             >
                               {claim.status}
                             </span>
                           </div>
-                          <p className="text-[11px] text-gray-400">
+                          <p className="text-[11px] text-slate-400">
                             {claim.claimantEmail} • Submitted {formatRelativeTime(claim.createdAt)}
                           </p>
                         </div>
@@ -332,7 +329,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                             openChatForClaim(claim.id);
                             onClose();
                           }}
-                          className="flex items-center gap-1 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg transition-colors"
+                          className="flex items-center gap-1 px-3 py-1 bg-sjsu-50 hover:bg-sjsu-100 text-sjsu-500 text-xs font-semibold rounded-lg transition-colors"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
                           <span>Direct Chat</span>
@@ -340,8 +337,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                       </div>
 
                       {/* Claim proof description */}
-                      <div className="bg-gray-50 p-2.5 rounded-lg text-xs text-gray-700">
-                        <span className="font-bold text-gray-500 block mb-0.5">Proof of Ownership:</span>
+                      <div className="bg-slate-50 p-2.5 rounded-lg text-xs text-slate-700 border border-slate-100">
+                        <span className="font-semibold text-slate-500 block mb-0.5">Proof of Ownership:</span>
                         "{claim.proofDescription}"
                       </div>
 
@@ -356,7 +353,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                           </button>
                           <button
                             onClick={() => handleClaimStatusChange(claim.id, 'Accepted')}
-                            className="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold"
+                            className="text-xs px-3 py-1 bg-sjsu-500 hover:bg-sjsu-600 text-white rounded-md font-semibold"
                           >
                             Accept Claimant
                           </button>
