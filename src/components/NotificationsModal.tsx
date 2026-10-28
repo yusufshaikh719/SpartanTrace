@@ -51,7 +51,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/90">
           <div className="flex items-center gap-2">
-            <Bell className="w-5 h-5 text-emerald-600" />
+            <Bell className="w-5 h-5 text-sjsu-600" />
             <h2 className="text-base font-extrabold text-gray-900">Notifications</h2>
           </div>
           <div className="flex items-center gap-2">

@@ -13,151 +13,82 @@ import {
   ItemCategory,
 } from '../types';
 
-// Pre-seeded realistic SJSU campus profiles
-export const DEFAULT_USERS: UserProfile[] = [
-  {
-    id: 'user-finder-jane',
-    email: 'jane.spartan@sjsu.edu',
-    name: 'Jane Spartan',
-    role: 'finder',
-    isAdmin: false,
-    isSuspended: false,
-    failedLoginAttempts: 0,
-    lockoutUntil: null,
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-  },
-  {
-    id: 'user-looker-sam',
-    email: 'sam.looker@sjsu.edu',
-    name: 'Sam Student',
-    role: 'looker',
-    isAdmin: false,
-    isSuspended: false,
-    failedLoginAttempts: 0,
-    lockoutUntil: null,
-    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-  },
-  {
-    id: 'user-admin-alex',
-    email: 'alex.admin@sjsu.edu',
-    name: 'Officer Alex (Admin)',
-    role: 'admin',
-    isAdmin: true,
-    isSuspended: false,
-    failedLoginAttempts: 0,
-    lockoutUntil: null,
-    createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-  },
-];
+// Campus user profile storage defaults (no mock fake users)
+export const DEFAULT_USERS: UserProfile[] = [];
 
-// Pre-seeded realistic SJSU campus listings
-const INITIAL_LISTINGS: Listing[] = [
-  {
-    id: 'listing-1',
-    finderId: 'user-finder-jane',
-    finderName: 'Jane Spartan',
-    finderEmail: 'jane.spartan@sjsu.edu',
-    title: 'Apple AirPods Pro (2nd Gen) in White Case',
-    description: 'Found on the 3rd floor quiet study desk near the windows facing 4th Street. Case has a small blue astronaut silicone skin.',
-    photoUrl: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=800&q=80',
-    category: 'Electronics',
-    locationFound: 'Dr. Martin Luther King, Jr. Library - 3rd Floor',
-    dateFound: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0],
-    status: 'Available',
-    returnDate: null,
-    isRemoved: false,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: 'listing-2',
-    finderId: 'user-finder-jane',
-    finderName: 'Jane Spartan',
-    finderEmail: 'jane.spartan@sjsu.edu',
-    title: 'Toyota Car Key with SJSU Spartan Lanyard',
-    description: 'Single car key fob with a blue & gold San Jose State University lanyard and a small bronze bottle opener.',
-    photoUrl: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=800&q=80',
-    category: 'Keys',
-    locationFound: 'Diaz Compean Student Union - Food Court',
-    dateFound: new Date(Date.now() - 86400000 * 2).toISOString().split('T')[0],
-    status: 'Available',
-    returnDate: null,
-    isRemoved: false,
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-  },
-  {
-    id: 'listing-3',
-    finderId: 'user-admin-alex',
-    finderName: 'Officer Alex (Admin)',
-    finderEmail: 'alex.admin@sjsu.edu',
-    title: 'TI-84 Plus CE Graphing Calculator',
-    description: 'Matte black graphing calculator left behind in lecture hall after CS 146 exam. Has scratch mark on battery door.',
-    photoUrl: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80',
-    category: 'Electronics',
-    locationFound: 'Duncan Hall - Room 311',
-    dateFound: new Date(Date.now() - 86400000 * 3).toISOString().split('T')[0],
-    status: 'Pending',
-    returnDate: null,
-    isRemoved: false,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: 'listing-4',
-    finderId: 'user-finder-jane',
-    finderName: 'Jane Spartan',
-    finderEmail: 'jane.spartan@sjsu.edu',
-    title: 'North Face Black Backpack with Water Bottle',
-    description: 'Black Surge backpack found near bench. Contains several notebooks for ENGR 100W.',
-    photoUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
-    category: 'Bags & Backpacks',
-    locationFound: 'Spartan Recreation and Aquatic Center (SRAC)',
-    dateFound: new Date(Date.now() - 86400000 * 4).toISOString().split('T')[0],
-    status: 'Available',
-    returnDate: null,
-    isRemoved: false,
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: 'listing-5',
-    finderId: 'user-looker-sam',
-    finderName: 'Sam Student',
-    finderEmail: 'sam.looker@sjsu.edu',
-    title: 'SJSU Tower Card Student ID',
-    description: 'Found on walkway leading towards Tower Lawn. Handed to Student Union front info counter.',
-    photoUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
-    category: 'IDs & Cards',
-    locationFound: 'Tower Lawn / Provost Quad',
-    dateFound: new Date(Date.now() - 86400000 * 1).toISOString().split('T')[0],
-    status: 'Returned',
-    returnDate: new Date().toISOString(),
-    isRemoved: false,
-    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'listing-6',
-    finderId: 'user-finder-jane',
-    finderName: 'Jane Spartan',
-    finderEmail: 'jane.spartan@sjsu.edu',
-    title: 'Hydro Flask 32oz Wide Mouth (Olive Green)',
-    description: 'Olive green Hydro Flask with stickers (GitHub, SJSU IEEE, Yosemite). Found on the spin bike row.',
-    photoUrl: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=800&q=80',
-    category: 'Accessories',
-    locationFound: 'Spartan Recreation and Aquatic Center (SRAC)',
-    dateFound: new Date().toISOString().split('T')[0],
-    status: 'Available',
-    returnDate: null,
-    isRemoved: false,
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-];
+// Clean initial empty state for campus listings
+const INITIAL_LISTINGS: Listing[] = [];
 
 // In-Memory / LocalStorage helper
 class LocalStore {
+  constructor() {
+    this.purgeLegacyMockData();
+  }
+
+  private purgeLegacyMockData(): void {
+    try {
+      const mockListingIds = new Set(['listing-1', 'listing-2', 'listing-3', 'listing-4', 'listing-5', 'listing-6']);
+      const listings = this.get<Listing[]>('listings', []);
+      if (listings.some((l) => mockListingIds.has(l.id))) {
+        this.set('listings', listings.filter((l) => !mockListingIds.has(l.id)));
+      }
+
+      const mockClaimIds = new Set(['claim-1']);
+      const claims = this.get<Claim[]>('claims', []);
+      if (claims.some((c) => mockClaimIds.has(c.id))) {
+        this.set('claims', claims.filter((c) => !mockClaimIds.has(c.id)));
+      }
+
+      const mockConvIds = new Set(['conv-1']);
+      const convs = this.get<Conversation[]>('conversations', []);
+      if (convs.some((c) => mockConvIds.has(c.id))) {
+        this.set('conversations', convs.filter((c) => !mockConvIds.has(c.id)));
+      }
+
+      const mockMsgIds = new Set(['msg-1', 'msg-2']);
+      const msgs = this.get<Message[]>('messages', []);
+      if (msgs.some((m) => mockMsgIds.has(m.id))) {
+        this.set('messages', msgs.filter((m) => !mockMsgIds.has(m.id)));
+      }
+
+      const mockAlertIds = new Set(['alert-1']);
+      const alerts = this.get<LostItemAlert[]>('alerts', []);
+      if (alerts.some((a) => mockAlertIds.has(a.id))) {
+        this.set('alerts', alerts.filter((a) => !mockAlertIds.has(a.id)));
+      }
+
+      const mockNotifIds = new Set(['notif-1', 'notif-2']);
+      const notifs = this.get<AppNotification[]>('notifications', []);
+      if (notifs.some((n) => mockNotifIds.has(n.id))) {
+        this.set('notifications', notifs.filter((n) => !mockNotifIds.has(n.id)));
+      }
+
+      const mockAuditIds = new Set(['log-1']);
+      const logs = this.get<AdminAuditLog[]>('audit_logs', []);
+      if (logs.some((l) => mockAuditIds.has(l.id))) {
+        this.set('audit_logs', logs.filter((l) => !mockAuditIds.has(l.id)));
+      }
+
+      const mockUserIds = new Set(['user-finder-jane', 'user-looker-sam', 'user-admin-alex']);
+      const users = this.get<UserProfile[]>('users', []);
+      if (users.some((u) => mockUserIds.has(u.id))) {
+        this.set('users', users.filter((u) => !mockUserIds.has(u.id)));
+      }
+
+      const currentUser = localStorage.getItem('spartantrace_current_user');
+      if (currentUser) {
+        try {
+          const parsed = JSON.parse(currentUser);
+          if (mockUserIds.has(parsed.id)) {
+            localStorage.removeItem('spartantrace_current_user');
+          }
+        } catch {}
+      }
+    } catch (e) {
+      console.warn('Error purging mock data:', e);
+    }
+  }
+
   private get<T>(key: string, defaultValue: T): T {
     try {
       const data = localStorage.getItem(`st_${key}`);
@@ -176,7 +107,7 @@ class LocalStore {
   }
 
   getUsers(): UserProfile[] {
-    return this.get<UserProfile[]>('users', DEFAULT_USERS);
+    return this.get<UserProfile[]>('users', []);
   }
 
   saveUsers(users: UserProfile[]) {
@@ -184,7 +115,7 @@ class LocalStore {
   }
 
   getListings(): Listing[] {
-    return this.get<Listing[]>('listings', INITIAL_LISTINGS);
+    return this.get<Listing[]>('listings', []);
   }
 
   saveListings(listings: Listing[]) {
@@ -192,19 +123,7 @@ class LocalStore {
   }
 
   getClaims(): Claim[] {
-    return this.get<Claim[]>('claims', [
-      {
-        id: 'claim-1',
-        listingId: 'listing-3',
-        claimantId: 'user-looker-sam',
-        claimantName: 'Sam Student',
-        claimantEmail: 'sam.looker@sjsu.edu',
-        proofDescription: 'I lost my TI-84 Plus CE during my CS146 exam on Friday. The serial number ends in 492 and has my initials SS on the back sticker.',
-        status: 'Pending',
-        createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-        updatedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-      }
-    ]);
+    return this.get<Claim[]>('claims', []);
   }
 
   saveClaims(claims: Claim[]) {
@@ -212,21 +131,7 @@ class LocalStore {
   }
 
   getConversations(): Conversation[] {
-    return this.get<Conversation[]>('conversations', [
-      {
-        id: 'conv-1',
-        claimId: 'claim-1',
-        listingId: 'listing-3',
-        listingTitle: 'TI-84 Plus CE Graphing Calculator',
-        listingPhoto: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80',
-        finderId: 'user-admin-alex',
-        claimantId: 'user-looker-sam',
-        finderName: 'Officer Alex (Admin)',
-        claimantName: 'Sam Student',
-        lastMessage: 'Hi Sam! I have your calculator safely held in Duncan Hall 311. When can you drop by with your SJSU ID?',
-        updatedAt: new Date(Date.now() - 3600000 * 10).toISOString(),
-      }
-    ]);
+    return this.get<Conversation[]>('conversations', []);
   }
 
   saveConversations(convs: Conversation[]) {
@@ -234,26 +139,7 @@ class LocalStore {
   }
 
   getMessages(): Message[] {
-    return this.get<Message[]>('messages', [
-      {
-        id: 'msg-1',
-        conversationId: 'conv-1',
-        senderId: 'user-looker-sam',
-        senderName: 'Sam Student',
-        content: 'Hi Officer Alex, I submitted a claim for this TI-84 calculator. It was left in DH 311 on Friday.',
-        isRemoved: false,
-        createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-      },
-      {
-        id: 'msg-2',
-        conversationId: 'conv-1',
-        senderId: 'user-admin-alex',
-        senderName: 'Officer Alex (Admin)',
-        content: 'Hi Sam! I have your calculator safely held in Duncan Hall 311. When can you drop by with your SJSU ID?',
-        isRemoved: false,
-        createdAt: new Date(Date.now() - 3600000 * 10).toISOString(),
-      }
-    ]);
+    return this.get<Message[]>('messages', []);
   }
 
   saveMessages(msgs: Message[]) {
@@ -261,17 +147,7 @@ class LocalStore {
   }
 
   getAlerts(): LostItemAlert[] {
-    return this.get<LostItemAlert[]>('alerts', [
-      {
-        id: 'alert-1',
-        userId: 'user-looker-sam',
-        keywords: 'AirPods, earphone',
-        category: 'Electronics',
-        location: 'Dr. Martin Luther King, Jr. Library',
-        isActive: true,
-        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      }
-    ]);
+    return this.get<LostItemAlert[]>('alerts', []);
   }
 
   saveAlerts(alerts: LostItemAlert[]) {
@@ -279,30 +155,7 @@ class LocalStore {
   }
 
   getNotifications(): AppNotification[] {
-    return this.get<AppNotification[]>('notifications', [
-      {
-        id: 'notif-1',
-        userId: 'user-looker-sam',
-        type: 'alert_match',
-        title: 'Possible Match for your Alert!',
-        message: 'A new listing "Apple AirPods Pro (2nd Gen) in White Case" matches your keyword "AirPods".',
-        linkType: 'listing',
-        linkId: 'listing-1',
-        isRead: false,
-        createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-      },
-      {
-        id: 'notif-2',
-        userId: 'user-admin-alex',
-        type: 'claim_received',
-        title: 'New Ownership Claim Submitted',
-        message: 'Sam Student filed a claim for "TI-84 Plus CE Graphing Calculator".',
-        linkType: 'conversation',
-        linkId: 'conv-1',
-        isRead: true,
-        createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-      }
-    ]);
+    return this.get<AppNotification[]>('notifications', []);
   }
 
   saveNotifications(notifs: AppNotification[]) {
@@ -318,18 +171,7 @@ class LocalStore {
   }
 
   getAuditLogs(): AdminAuditLog[] {
-    return this.get<AdminAuditLog[]>('audit_logs', [
-      {
-        id: 'log-1',
-        adminId: 'user-admin-alex',
-        adminName: 'Officer Alex (Admin)',
-        action: 'RESOLVE_REPORT',
-        targetId: 'listing-5',
-        targetType: 'listing',
-        reason: 'Item verified as returned to legitimate owner at Student Union desk.',
-        createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-      }
-    ]);
+    return this.get<AdminAuditLog[]>('audit_logs', []);
   }
 
   saveAuditLogs(logs: AdminAuditLog[]) {

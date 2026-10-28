@@ -34,45 +34,12 @@ export const ITEM_CATEGORIES = [
   'Other',
 ] as const;
 
-export const SAMPLE_PHOTOS = [
-  {
-    name: 'AirPods / Earbuds',
-    url: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=800&q=80',
-    category: 'Electronics',
-  },
-  {
-    name: 'Car / House Keys',
-    url: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=800&q=80',
-    category: 'Keys',
-  },
-  {
-    name: 'Backpack',
-    url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80',
-    category: 'Bags & Backpacks',
-  },
-  {
-    name: 'Graphing Calculator',
-    url: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=800&q=80',
-    category: 'Electronics',
-  },
-  {
-    name: 'Hydro Flask / Water Bottle',
-    url: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=800&q=80',
-    category: 'Accessories',
-  },
-  {
-    name: 'Student ID / Wallet',
-    url: 'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80',
-    category: 'IDs & Cards',
-  },
-  {
-    name: 'Jacket / Hoodie',
-    url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
-    category: 'Clothing & Apparel',
-  },
-  {
-    name: 'Notebook / Textbook',
-    url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
-    category: 'Books & Supplies',
-  },
+export const CAMPUS_HOTSPOTS = [
+  { label: 'All Campus Locations', value: 'All' },
+  { label: 'MLK Library', value: 'Dr. Martin Luther King, Jr. Library' },
+  { label: 'Student Union', value: 'Diaz Compean Student Union' },
+  { label: 'SRAC Aquatic Center', value: 'Spartan Recreation and Aquatic Center' },
+  { label: 'Engineering Building', value: 'Engineering Building' },
+  { label: 'Duncan Hall', value: 'Duncan Hall' },
+  { label: 'Tower Lawn / 7th St', value: 'Tower Lawn' },
 ];

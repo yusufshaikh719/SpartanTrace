@@ -253,28 +253,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             </form>
           )}
 
-          {/* Quick Sign-In Option */}
-          <div className="border-t border-neutral-100 pt-3">
-            <p className="text-[11px] font-semibold text-neutral-400 mb-2">
-              Quick Accounts:
-            </p>
-            <div className="space-y-1">
-              {availableUsers.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => {
-                    switchUser(u.id);
-                    onClose();
-                  }}
-                  className="w-full py-1.5 px-3 bg-neutral-50 hover:bg-neutral-100 rounded-lg text-xs flex items-center justify-between text-neutral-700 transition-colors"
-                >
-                  <span className="font-medium">{u.name}</span>
-                  <span className="text-[10px] text-neutral-400 capitalize">{u.role}</span>
-                </button>
-              ))}
+          {/* Quick Sign-In Option (Only if real accounts exist locally) */}
+          {availableUsers.length > 0 ? (
+            <div className="border-t border-neutral-100 pt-3">
+              <p className="text-[11px] font-semibold text-neutral-400 mb-2">
+                Recently Used Accounts:
+              </p>
+              <div className="space-y-1">
+                {availableUsers.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => {
+                      switchUser(u.id);
+                      onClose();
+                    }}
+                    className="w-full py-1.5 px-3 bg-neutral-50 hover:bg-neutral-100 rounded-lg text-xs flex items-center justify-between text-neutral-700 transition-colors"
+                  >
+                    <span className="font-medium">{u.name}</span>
+                    <span className="text-[10px] text-neutral-400 capitalize">{u.role}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="border-t border-neutral-100 pt-3 text-[11px] text-neutral-400 text-center">
+              Enter any valid <span className="font-semibold text-neutral-700">@sjsu.edu</span> address.
+            </div>
+          )}
         </div>
       </div>
     </div>

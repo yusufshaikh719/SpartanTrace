@@ -32,13 +32,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem('spartantrace_current_user');
-      return saved ? JSON.parse(saved) : DEFAULT_USERS[0]; // Jane Spartan as initial active user
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.id === 'user-finder-jane' || parsed.id === 'user-looker-sam' || parsed.id === 'user-admin-alex') {
+          localStorage.removeItem('spartantrace_current_user');
+          return null;
+        }
+        return parsed;
+      }
+      return null;
     } catch {
-      return DEFAULT_USERS[0];
+      return null;
     }
   });
 
-  const [availableUsers, setAvailableUsers] = useState<UserProfile[]>(DEFAULT_USERS);
+  const [availableUsers, setAvailableUsers] = useState<UserProfile[]>(() => {
+    return localStore.getUsers();
+  });
   const [lastActivity, setLastActivity] = useState<number>(Date.now());
   const [lockoutStatus, setLockoutStatus] = useState<{ isLocked: boolean; remainingMinutes?: number }>({
     isLocked: false,
