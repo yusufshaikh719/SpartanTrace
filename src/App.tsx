@@ -37,6 +37,8 @@ export const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedLocation, setSelectedLocation] = useState('All');
   const [dateRange, setDateRange] = useState('all');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
   const [sortBy, setSortBy] = useState<'relevance' | 'newest'>('relevance');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'pending'>('all');
   const [viewMode, setViewMode] = useState<'all' | 'my-listings' | 'my-claims'>('all');
@@ -75,7 +77,9 @@ export const App: React.FC = () => {
     const request = ++requestId.current;
     setLoadError('');
     try {
-    const { dateFrom, dateTo } = dateBounds(dateRange);
+    const { dateFrom, dateTo } = dateRange === 'custom'
+      ? { dateFrom: customDateFrom || undefined, dateTo: customDateTo || undefined }
+      : dateBounds(dateRange);
 
     const items = await dbService.getListings({
       keyword: searchTerm,
@@ -101,7 +105,7 @@ export const App: React.FC = () => {
     } catch (error) {
       if (request === requestId.current) { setListings([]); setLoadError(error instanceof Error ? error.message : 'Could not load listings.'); }
     } finally { if (request === requestId.current) setIsLoading(false); }
-  }, [searchTerm, selectedCategory, selectedLocation, dateRange, sortBy, statusFilter, viewMode, user]);
+  }, [searchTerm, selectedCategory, selectedLocation, dateRange, customDateFrom, customDateTo, sortBy, statusFilter, viewMode, user]);
 
   useEffect(() => {
     void fetchListings();
@@ -141,6 +145,8 @@ export const App: React.FC = () => {
     setSelectedCategory('All');
     setSelectedLocation('All');
     setDateRange('all');
+    setCustomDateFrom('');
+    setCustomDateTo('');
     setStatusFilter('all');
     setSortBy('relevance');
     setSearchTerm('');
@@ -330,6 +336,10 @@ export const App: React.FC = () => {
         dateRange={dateRange}
         onDateRangeChange={setDateRange}
         sortBy={sortBy}
+        customDateFrom={customDateFrom}
+        customDateTo={customDateTo}
+        onCustomDateFromChange={setCustomDateFrom}
+        onCustomDateToChange={setCustomDateTo}
         onSortChange={setSortBy}
         totalResults={listings.length}
         onReset={resetAllFilters}

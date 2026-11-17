@@ -125,6 +125,40 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
 );
 
 -- Applies to both the original SpartanTrace schema and new installations.
+-- Earlier deployments used UUID columns; the application API also supports
+-- legacy text identifiers. Normalize only application tables, preserving values,
+-- defaults and foreign-key definitions. Never cascade into unrelated tables.
+SET LOCAL search_path = '';
+DO $$
+DECLARE
+ app_tables text[] := ARRAY['profiles','listings','claims','conversations','messages','lost_item_alerts','notifications','reports','admin_audit_logs'];
+ p record; col record; fk record; saved_fks jsonb;
+BEGIN
+ -- Policies can depend on UUID operators and must be replaced before conversion.
+ FOR p IN SELECT tablename,policyname FROM pg_policies WHERE schemaname='public' AND tablename=ANY(app_tables) LOOP
+  EXECUTE format('DROP POLICY %I ON public.%I',p.policyname,p.tablename);
+ END LOOP;
+ IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=ANY(app_tables) AND data_type='uuid') THEN
+  SELECT coalesce(jsonb_agg(jsonb_build_object('table',t.relname,'name',c.conname,'definition',pg_get_constraintdef(c.oid))),'[]'::jsonb)
+  INTO saved_fks FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace ns ON ns.oid=t.relnamespace
+  WHERE c.contype='f' AND ns.nspname='public' AND t.relname=ANY(app_tables);
+  FOR fk IN SELECT * FROM jsonb_to_recordset(saved_fks) AS x("table" text,name text,definition text) LOOP
+   EXECUTE format('ALTER TABLE public.%I DROP CONSTRAINT %I',fk."table",fk.name);
+  END LOOP;
+  FOR col IN SELECT table_name,column_name,column_default FROM information_schema.columns
+   WHERE table_schema='public' AND table_name=ANY(app_tables) AND data_type='uuid' LOOP
+   EXECUTE format('ALTER TABLE public.%I ALTER COLUMN %I DROP DEFAULT',col.table_name,col.column_name);
+   EXECUTE format('ALTER TABLE public.%I ALTER COLUMN %I TYPE text USING %I::text',col.table_name,col.column_name,col.column_name);
+   IF col.column_default IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE public.%I ALTER COLUMN %I SET DEFAULT (%s)::text',col.table_name,col.column_name,col.column_default);
+   END IF;
+  END LOOP;
+  FOR fk IN SELECT * FROM jsonb_to_recordset(saved_fks) AS x("table" text,name text,definition text) LOOP
+   EXECUTE format('ALTER TABLE public.%I ADD CONSTRAINT %I %s',fk."table",fk.name,fk.definition);
+  END LOOP;
+ END IF;
+END $$;
+SET LOCAL search_path = public;
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC;
 ALTER TABLE public.reports DROP CONSTRAINT IF EXISTS reports_content_type_check;

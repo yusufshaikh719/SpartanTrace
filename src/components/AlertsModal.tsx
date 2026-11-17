@@ -132,7 +132,7 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
                 <option value="">Any Location</option>
                 {SJSU_LOCATIONS.map((loc) => (
                   <option key={loc} value={loc}>
-                    {loc.split('-')[0]}
+                    {loc}
                   </option>
                 ))}
               </select>

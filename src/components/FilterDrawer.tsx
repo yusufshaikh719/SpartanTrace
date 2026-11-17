@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, RotateCcw, Check, MapPin, Calendar, ArrowUpDown, Tag } from 'lucide-react';
 import { ITEM_CATEGORIES, SJSU_LOCATIONS } from '../utils/constants';
+import { campusDate } from '../utils/listings';
 
 interface FilterDrawerProps {
   isOpen: boolean;
@@ -11,6 +12,10 @@ interface FilterDrawerProps {
   onLocationChange: (loc: string) => void;
   dateRange: string;
   onDateRangeChange: (range: string) => void;
+  customDateFrom: string;
+  customDateTo: string;
+  onCustomDateFromChange: (date: string) => void;
+  onCustomDateToChange: (date: string) => void;
   sortBy: 'relevance' | 'newest';
   onSortChange: (sort: 'relevance' | 'newest') => void;
   totalResults: number;
@@ -26,6 +31,10 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
   onLocationChange,
   dateRange,
   onDateRangeChange,
+  customDateFrom,
+  customDateTo,
+  onCustomDateFromChange,
+  onCustomDateToChange,
   sortBy,
   onSortChange,
   totalResults,
@@ -41,7 +50,9 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
     { label: 'Past 3 Days', value: '3days' },
     { label: 'Past Week', value: '7days' },
     { label: 'Past Month', value: '30days' },
+    { label: 'Custom dates', value: 'custom' },
   ];
+  const invalidDates = dateRange === 'custom' && customDateFrom && customDateTo && customDateFrom > customDateTo;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex justify-end">
@@ -140,7 +151,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
           {/* Date Range */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wider block">
-              Date Reported
+              Date Found
             </label>
             <div className="grid grid-cols-2 gap-1.5">
               {dateOptions.map((opt) => (
@@ -158,6 +169,22 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
                 </button>
               ))}
             </div>
+            {dateRange === 'custom' && (
+              <div className="space-y-2">
+                <label className="block text-xs text-neutral-600">Found from
+                  <input type="date" value={customDateFrom} max={customDateTo || campusDate()}
+                    onChange={(event) => onCustomDateFromChange(event.target.value)}
+                    className="block w-full mt-1 border rounded-lg p-2" />
+                </label>
+                <label className="block text-xs text-neutral-600">Found through
+                  <input type="date" value={customDateTo} min={customDateFrom || undefined} max={campusDate()}
+                    onChange={(event) => onCustomDateToChange(event.target.value)}
+                    className="block w-full mt-1 border rounded-lg p-2" />
+                </label>
+                <p className="text-xs text-neutral-500">Either date can be left blank. Both dates are included.</p>
+                {invalidDates && <p role="alert" className="text-xs text-red-600">The end date must be on or after the start date.</p>}
+              </div>
+            )}
           </div>
         </div>
 
@@ -175,6 +202,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
+            disabled={Boolean(invalidDates)}
             className="flex-1 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold py-2.5 px-4 rounded-xl transition-colors text-center"
           >
             Show {totalResults} {totalResults === 1 ? 'Item' : 'Items'}

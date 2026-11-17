@@ -242,7 +242,7 @@ export const RegistryHeader: React.FC<RegistryHeaderProps> = ({
           {dateRange !== 'all' && (
             <span className="inline-flex items-center gap-1.5 bg-neutral-100 text-neutral-900 px-2.5 py-1 rounded-full text-xs font-medium border border-neutral-200/70">
               <Calendar className="w-3 h-3 text-sjsu-500" />
-              <span>{dateRange}</span>
+              <span>{({ today: 'Today', '3days': 'Past 3 days', '7days': 'Past week', '30days': 'Past month', custom: 'Custom dates' } as Record<string, string>)[dateRange] || dateRange}</span>
               <button
                 onClick={() => onDateRangeChange('all')}
                 className="hover:text-red-500 rounded-full p-0.5 transition-colors"

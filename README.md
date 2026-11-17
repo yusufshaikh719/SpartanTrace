@@ -34,7 +34,7 @@ Database, email verification, and login-function deployment instructions are in 
 ## Workflows
 
 - Finders post a required photo, title, description, category, campus location, and valid date; edit active listings; review claims; accept one claimant; and confirm a completed return.
-- Lookers search titles/descriptions, combine category/location/date filters, sort by relevance or newest, submit ownership evidence, and communicate in a claim-specific conversation.
+- Lookers search titles/descriptions, combine category/location/date filters (recent presets or custom inclusive dates), sort by relevance or newest, submit ownership evidence, and communicate in a claim-specific conversation.
 - Lost-item alerts support keywords, optional category/location/date lost, and persistent matching notifications. A listing must match each supplied category/location/date criterion and at least one keyword when keywords are supplied.
 - My listings and My claims retain returned-item history. Returned records and conversations are read-only. Removed content is unavailable to normal users.
 - Registration requires a name, SJSU email, password, and email confirmation. Login requires verified credentials and an active account. Inactive sessions expire after 30 minutes. Five failed application login attempts within 15 minutes lock the account for 15 minutes.

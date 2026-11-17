@@ -13,3 +13,4 @@ playwright-report/
 
 # Generated deployment files contain source only; rebuild with supabase:prepare.
 deployment/
+supabase/.temp/

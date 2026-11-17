@@ -1,5 +1,14 @@
 project_id = "spartantrace"
 
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5173/**", "http://127.0.0.1:5173/**"]
+enable_signup = true
+minimum_password_length = 8
+
+[auth.email]
+enable_confirmations = true
+
 # Login precedes authentication. The function validates credentials with Auth;
 # service-only SQL grants the resulting session access to application data.
 [functions.login]

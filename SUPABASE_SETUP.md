@@ -14,6 +14,15 @@ For a new project, run all of `supabase/schema.sql` in the Supabase SQL Editor. 
 
 For a project that already ran the original SpartanTrace schema, run `supabase/migrations/202611170001_secure_workflows.sql`. This preserves records, replaces the original permissive policies, and adds the new workflow functions. If the script reports duplicate active claims or multiple conversations per claim, review and resolve those records before rerunning; the migration intentionally does not delete historical records to satisfy its indexes. Existing local-storage data is not migrated or treated as an authenticated identity. Legacy profile IDs are not Supabase Auth identities.
 
+Some earlier hosted installations use UUID application columns. Both SQL scripts convert these to the application's text identifier representation while retaining their values, defaults, and foreign keys. The upgrade does not delete records or cascade schema changes into unrelated tables. Back up populated projects before applying schema changes.
+
+With Supabase CLI 3.x, authenticated management access can apply the existing-installation upgrade directly without a separate database password:
+
+```sh
+npx supabase login
+npx supabase db query --remote=YOUR_PROJECT_REF --file supabase/migrations/202611170001_secure_workflows.sql --yes
+```
+
 The application requires schema version 2. The connection check calls `app_version()` to verify the migration exists.
 
 ## 2. Configure Auth
@@ -25,18 +34,27 @@ In Authentication settings:
 3. Set the Site URL to the deployed application origin, and allow its callback URL. For development, allow `http://localhost:5173` and/or `http://127.0.0.1:5173`.
 4. Configure email delivery for the intended users and test confirmation links with a real SJSU inbox. Supabase's default email service has delivery restrictions; configure custom SMTP for users outside your project team.
 
+The repository declares local-development Auth settings in `supabase/config.toml`. After reviewing the exact changes, an account with Auth configuration privileges can apply them with:
+
+```sh
+npx supabase config diff --remote=YOUR_PROJECT_REF
+npx supabase config push --remote=YOUR_PROJECT_REF --yes
+```
+
+Replace local URLs before using this config for a hosted frontend. The current project's database migration, login function and local Auth settings have been applied. The initial Auth update received HTTP 403, then succeeded once Owner access was available. Hosted configuration now matches the declared local URLs, requires email confirmation and enforces an eight-character password minimum. Sign-in/workflow tests passed; real confirmation email delivery and callback navigation remain unverified.
+
 The database rejects non-SJSU Auth users and creates application profiles only after email confirmation. Names come from `full_name` registration metadata; administrator roles never do.
 
 Do not enable the paid Password Verification Attempt hook for this implementation. The application uses the login gateway below so lockout works on the free tier. [Supabase documents which Auth hooks require paid plans](https://supabase.com/docs/guides/auth/auth-hooks).
 
 ## 3. Deploy the login Edge Function
 
-From the repository, with the Supabase CLI installed and authenticated:
+From the repository, with the Supabase CLI authenticated:
 
 ```sh
-supabase link --project-ref YOUR_PROJECT_REF
-supabase functions deploy login --no-verify-jwt
-supabase secrets set APP_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://YOUR_APP_HOST
+npx supabase functions deploy login --remote=YOUR_PROJECT_REF --no-verify-jwt --use-api --yes
+# Only when adding a deployed frontend (keep the origins you actually use):
+npx supabase secrets set APP_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://YOUR_APP_HOST --remote=YOUR_PROJECT_REF --yes
 ```
 
 `APP_ORIGINS` is a comma-separated list of exact browser origins. Keep only the origins you use. The hosted function uses the built-in `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` environment variables. No server key belongs in the frontend or a `VITE_` variable.

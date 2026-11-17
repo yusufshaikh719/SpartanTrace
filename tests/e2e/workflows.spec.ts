@@ -252,3 +252,43 @@ test('uploaded photos persist through posting and replacement on an existing lis
   await expect(page.getByRole('img',{name:'Found headphones',exact:true})).toHaveAttribute('src',replacementUrl);
  } finally {await context.close();await api.close();}
 });
+
+test('custom date bounds include older items, combine with other filters, and clear independently', async ({browser}) => {
+ const api=await backend();await api.seed();const context=await browser.newContext();await api.attach(context);const page=await context.newPage();
+ try {
+  await page.goto('/');await expect(page.getByRole('heading',{name:'Silver laptop'})).toBeVisible();
+  await page.getByRole('button',{name:/^Filters/}).click();
+  await page.getByRole('button',{name:'Custom dates',exact:true}).click();
+  await page.getByLabel('Found from',{exact:true}).fill('2026-01-02');
+  await expect(page.getByRole('button',{name:'Show 0 Items',exact:true})).toBeVisible();
+  await page.getByLabel('Found through',{exact:true}).fill('2026-01-01');
+  await expect(page.getByRole('alert')).toContainText('end date');
+  await expect(page.getByRole('button',{name:/^Show \d/})).toBeDisabled();
+  await page.getByLabel('Found from',{exact:true}).fill('2026-01-01');
+  await expect(page.getByRole('button',{name:'Show 1 Item',exact:true})).toBeEnabled();
+  await page.getByRole('button',{name:'Keys',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Show 0 Items',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'All Categories',exact:true}).click();
+  await page.getByRole('button',{name:'Show 1 Item',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Silver laptop'})).toBeVisible();
+  await page.getByRole('combobox',{name:'Filter by campus location'}).selectOption('Engineering Building (ENG)');
+  await expect(page.getByRole('heading',{name:'No matching items found'})).toBeVisible();
+  await page.getByRole('button',{name:'Clear date range',exact:true}).click();
+  await expect(page.getByRole('combobox',{name:'Filter by campus location'})).toHaveValue('Engineering Building (ENG)');
+  await page.getByRole('combobox',{name:'Filter by campus location'}).selectOption('Duncan Hall (DH)');
+  await expect(page.getByRole('heading',{name:'Silver laptop'})).toBeVisible();
+ } finally {await context.close();await api.close();}
+});
+
+test('unsent ownership details do not carry over to another signed-in account', async ({browser}) => {
+ const api=await backend();await api.seed();const context=await browser.newContext();await api.attach(context);const page=await context.newPage();
+ try {
+  await page.goto('/');await signIn(page,'looker');
+  await page.getByRole('button',{name:'Claims & Messages'}).click();
+  await page.getByPlaceholder('Message finder...').fill('Private unsent ownership details');
+  await page.getByRole('button',{name:'Close chat'}).click();await signOut(page);
+  await signIn(page,'finder');await page.getByRole('button',{name:'Claims & Messages'}).click();
+  await expect(page.getByPlaceholder('Message looker...')).toHaveValue('');
+  await expect(page.getByText('Private unsent ownership details',{exact:true})).toHaveCount(0);
+ } finally {await context.close();await api.close();}
+});

@@ -27,6 +27,12 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
   const [showConvList, setShowConvList] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    setInputMessage('');
+    setSendError('');
+    setShowConvList(false);
+  }, [user?.id, activeConversation?.id]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
