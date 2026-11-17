@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Listing } from './types';
 import { dbService } from './services/db';
+import { dateBounds } from './utils/listings';
 import { useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { RegistryHeader } from './components/RegistryHeader';
@@ -23,12 +24,13 @@ import { ChatDrawer } from './components/ChatDrawer';
 import { AlertsModal } from './components/AlertsModal';
 import { NotificationsModal } from './components/NotificationsModal';
 import { ReportModal } from './components/ReportModal';
-import { AdminPanelModal } from './components/AdminPanelModal';
 import { AuthModal } from './components/AuthModal';
 import { SupabaseModal } from './components/SupabaseModal';
 
+const AdminPanelModal = React.lazy(() => import('./components/AdminPanelModal').then((module) => ({ default: module.AdminPanelModal })));
+
 export const App: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, authError } = useAuth();
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,12 +39,14 @@ export const App: React.FC = () => {
   const [dateRange, setDateRange] = useState('all');
   const [sortBy, setSortBy] = useState<'relevance' | 'newest'>('relevance');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'pending'>('all');
-  const [viewMode, setViewMode] = useState<'all' | 'my-listings'>('all');
+  const [viewMode, setViewMode] = useState<'all' | 'my-listings' | 'my-claims'>('all');
   const [viewLayout, setViewLayout] = useState<'grid' | 'list'>('grid');
 
   // Listings data
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const requestId = React.useRef(0);
 
   // Active Modals & Drawer
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -58,37 +62,20 @@ export const App: React.FC = () => {
 
   // Reporting state
   const [reportData, setReportData] = useState<{
-    contentType: 'listing' | 'message';
+    contentType: 'listing' | 'message' | 'user';
     contentId: string;
     ownerId: string;
     ownerName: string;
     contentSnippet: string;
   } | null>(null);
 
-  // Calculate Date bounds for filtering
-  const getDateRangeBounds = (range: string): { dateFrom?: string; dateTo?: string } => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-
-    if (range === 'today') {
-      return { dateFrom: todayStr, dateTo: todayStr };
-    } else if (range === '3days') {
-      const past = new Date(now.getTime() - 86400000 * 3).toISOString().split('T')[0];
-      return { dateFrom: past, dateTo: todayStr };
-    } else if (range === '7days') {
-      const past = new Date(now.getTime() - 86400000 * 7).toISOString().split('T')[0];
-      return { dateFrom: past, dateTo: todayStr };
-    } else if (range === '30days') {
-      const past = new Date(now.getTime() - 86400000 * 30).toISOString().split('T')[0];
-      return { dateFrom: past, dateTo: todayStr };
-    }
-    return {};
-  };
-
   // Fetch listings
   const fetchListings = useCallback(async () => {
     setIsLoading(true);
-    const { dateFrom, dateTo } = getDateRangeBounds(dateRange);
+    const request = ++requestId.current;
+    setLoadError('');
+    try {
+    const { dateFrom, dateTo } = dateBounds(dateRange);
 
     const items = await dbService.getListings({
       keyword: searchTerm,
@@ -99,6 +86,7 @@ export const App: React.FC = () => {
       sort: sortBy,
       includeReturned: viewMode === 'my-listings',
       finderId: viewMode === 'my-listings' ? user?.id : undefined,
+      claimantId: viewMode === 'my-claims' ? user?.id : undefined,
     });
 
     // Apply quick status filter
@@ -109,13 +97,38 @@ export const App: React.FC = () => {
       processed = processed.filter((item) => item.status === 'Pending');
     }
 
-    setListings(processed);
-    setIsLoading(false);
+    if (request === requestId.current) setListings(processed);
+    } catch (error) {
+      if (request === requestId.current) { setListings([]); setLoadError(error instanceof Error ? error.message : 'Could not load listings.'); }
+    } finally { if (request === requestId.current) setIsLoading(false); }
   }, [searchTerm, selectedCategory, selectedLocation, dateRange, sortBy, statusFilter, viewMode, user]);
 
   useEffect(() => {
-    fetchListings();
+    void fetchListings();
+    const timer = setInterval(() => { void fetchListings(); }, 30000);
+    return () => clearInterval(timer);
   }, [fetchListings]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setViewMode('all'); setSelectedListing(null); setIsPostModalOpen(false); setEditingListing(null);
+      setClaimingListing(null); setIsAlertsModalOpen(false); setIsNotificationsOpen(false); setIsAdminModalOpen(false); setReportData(null);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!selectedListing) return;
+    let cancelled = false;
+    const id = selectedListing.id;
+    const refresh = async () => {
+      try {
+        const current = await dbService.getListingById(id);
+        if (!cancelled) setSelectedListing((previous) => previous?.id !== id ? previous : !current || current.isRemoved ? null : current);
+      } catch (error) { if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Could not refresh item.'); }
+    };
+    const timer = setInterval(() => { void refresh(); }, 5000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [selectedListing?.id, user?.id]);
 
   const activeFilterCount =
     (selectedCategory !== 'All' ? 1 : 0) +
@@ -167,6 +180,9 @@ export const App: React.FC = () => {
 
       {/* Main Content Workspace */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-5">
+        {authError && <p role="alert" className="p-3 bg-amber-50 text-amber-900 rounded-xl text-sm">{authError}</p>}
+        {loadError && <div role="alert" className="p-4 bg-amber-50 text-amber-900 rounded-xl text-sm space-y-2"><p>{loadError}</p><button className="underline font-semibold" onClick={() => setIsSupabaseModalOpen(true)}>Database Settings</button><button className="underline ml-4" onClick={() => void fetchListings()}>Retry</button></div>}
+        {isAuthenticated && <div className="flex gap-2 text-xs">{(['all', 'my-listings', 'my-claims'] as const).map((mode) => <button key={mode} onClick={() => { setViewMode(mode); resetAllFilters(); }} className={`px-3 py-2 rounded-lg ${viewMode === mode ? 'bg-sjsu-600 text-white' : 'bg-white border'}`}>{mode === 'all' ? 'All items' : mode === 'my-listings' ? 'My listings' : 'My claims'}</button>)}</div>}
         {/* Unified Campus Registry Toolbar */}
         <RegistryHeader
           selectedCategory={selectedCategory}
@@ -209,7 +225,7 @@ export const App: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : listings.length === 0 ? (
+        ) : loadError ? null : listings.length === 0 ? (
           /* Minimalist, Clean Empty State */
           <div className="py-20 text-center max-w-md mx-auto space-y-4">
             <div className="w-14 h-14 bg-sjsu-50 text-sjsu-600 rounded-2xl flex items-center justify-center mx-auto border border-sjsu-100">
@@ -333,6 +349,7 @@ export const App: React.FC = () => {
           }}
           onOpenEditModal={(item) => setEditingListing(item)}
           onOpenReportModal={(type, id, ownerId, ownerName, snippet) => {
+            if (!isAuthenticated) { setIsAuthModalOpen(true); return; }
             setReportData({
               contentType: type,
               contentId: id,
@@ -344,7 +361,7 @@ export const App: React.FC = () => {
           onListingUpdated={() => {
             fetchListings();
             if (selectedListing) {
-              dbService.getListingById(selectedListing.id).then((l) => setSelectedListing(l));
+              dbService.getListingById(selectedListing.id).then((l) => setSelectedListing(l)).catch((e) => setLoadError(e.message));
             }
           }}
         />
@@ -399,7 +416,8 @@ export const App: React.FC = () => {
           onClose={() => setIsNotificationsOpen(false)}
           onOpenListing={async (id) => {
             const item = await dbService.getListingById(id);
-            if (item) setSelectedListing(item);
+            if (item && !item.isRemoved) setSelectedListing(item);
+            else setLoadError('This listing is no longer available.');
           }}
         />
       )}
@@ -413,10 +431,12 @@ export const App: React.FC = () => {
       )}
 
       {isAdminModalOpen && (
+        <React.Suspense fallback={<div role="status" className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"><p className="bg-white rounded-xl p-5 text-sm">Loading administration…</p></div>}>
         <AdminPanelModal
           onClose={() => setIsAdminModalOpen(false)}
           onRefreshListings={fetchListings}
         />
+        </React.Suspense>
       )}
 
       {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} />}

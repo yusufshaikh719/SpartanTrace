@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, AlertTriangle, ShieldCheck, MessageCircle, ChevronLeft } from 'lucide-react';
 import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
-import { formatRelativeTime } from '../utils/formatters';
+import { formatRelativeTime, getCampusPlaceholderImage } from '../utils/formatters';
 
 interface ChatDrawerProps {
   onOpenReportModal: (type: 'message', id: string, ownerId: string, ownerName: string, snippet: string) => void;
@@ -12,6 +12,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
   const { user } = useAuth();
   const {
     conversations,
+    error,
     activeConversation,
     messages,
     isOpen,
@@ -20,6 +21,8 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
     openChatWithConversation,
   } = useChat();
 
+  const [sendError, setSendError] = useState('');
+  const [sending, setSending] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [showConvList, setShowConvList] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,10 +43,14 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
     e.preventDefault();
     if (!inputMessage.trim()) return;
     const text = inputMessage.trim();
-    setInputMessage('');
-    await sendMessage(text);
+    if (sending) return;
+    setSending(true); setSendError('');
+    try { await sendMessage(text); setInputMessage(''); }
+    catch (error) { setSendError(error instanceof Error ? error.message : 'Message was not sent.'); }
+    finally { setSending(false); }
   };
 
+  const canSend = !!user && !!activeConversation && !activeConversation.isReadOnly && [activeConversation.finderId, activeConversation.claimantId].includes(user.id);
   const otherPersonName =
     activeConversation && user
       ? activeConversation.finderId === user.id
@@ -69,7 +76,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
           {activeConversation ? (
             <div className="flex items-center gap-2.5 overflow-hidden">
               <img
-                src={activeConversation.listingPhoto}
+                src={activeConversation.listingPhoto || getCampusPlaceholderImage()}
                 alt="Item thumbnail"
                 className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0"
               />
@@ -92,6 +99,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
         </div>
 
         <button
+          aria-label="Close chat"
           onClick={closeChat}
           className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-full transition-colors"
         >
@@ -118,7 +126,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
                   : 'bg-white hover:bg-slate-50 text-slate-800'
               }`}
             >
-              <img src={c.listingPhoto} className="w-7 h-7 rounded object-cover shrink-0" alt="" />
+              <img src={c.listingPhoto || getCampusPlaceholderImage()} className="w-7 h-7 rounded object-cover shrink-0" alt="" />
               <div className="truncate flex-1">
                 <p className="truncate font-medium">{c.listingTitle}</p>
                 <p className={`text-[10px] truncate ${c.id === activeConversation?.id ? 'text-blue-100' : 'text-slate-400'}`}>
@@ -188,10 +196,14 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
         <span>SJSU Safe Return: Meet in open public campus spaces (e.g. MLK Library or Student Union).</span>
       </div>
 
+      {(error || sendError) && <p role="alert" className="p-3 text-xs text-red-600">{sendError || error}</p>}
+      {activeConversation?.isReadOnly && <p className="px-4 py-2 text-xs text-neutral-500">This conversation is read-only.</p>}
       {/* Message Input Box */}
       <form onSubmit={handleSend} className="p-3 border-t border-slate-200 bg-white flex items-center gap-2">
         <input
           type="text"
+          disabled={!canSend}
+          maxLength={5000}
           placeholder={`Message ${otherPersonName}...`}
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
@@ -199,7 +211,7 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({ onOpenReportModal }) => 
         />
         <button
           type="submit"
-          disabled={!inputMessage.trim()}
+          disabled={!inputMessage.trim() || sending || !canSend}
           className="p-2.5 bg-sjsu-500 hover:bg-sjsu-600 active:bg-sjsu-700 disabled:opacity-40 text-white rounded-xl transition-colors shadow-xs"
         >
           <Send className="w-4 h-4" />

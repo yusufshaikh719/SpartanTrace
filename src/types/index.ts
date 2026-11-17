@@ -29,7 +29,7 @@ export interface Listing {
   id: string;
   finderId: string;
   finderName: string;
-  finderEmail: string;
+  finderEmail?: string;
   title: string;
   description: string;
   photoUrl: string;
@@ -72,6 +72,7 @@ export interface Conversation {
   listingId: string;
   listingTitle: string;
   listingPhoto: string;
+  isReadOnly?: boolean;
   finderId: string;
   claimantId: string;
   claimantName: string;
@@ -86,6 +87,7 @@ export interface LostItemAlert {
   keywords: string;
   category?: string;
   location?: string;
+  dateLost?: string | null;
   isActive: boolean;
   createdAt: string;
 }
@@ -115,7 +117,7 @@ export interface ReportItem {
   id: string;
   reporterId: string;
   reporterName: string;
-  contentType: 'listing' | 'message';
+  contentType: 'listing' | 'message' | 'user';
   contentId: string;
   ownerId: string;
   ownerName: string;

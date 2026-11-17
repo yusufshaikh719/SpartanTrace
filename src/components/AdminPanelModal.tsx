@@ -12,6 +12,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { ReportItem, AdminAuditLog, UserProfile, Listing } from '../types';
+import { useChat } from '../context/ChatContext';
 import { useAuth } from '../context/AuthContext';
 import { dbService } from '../services/db';
 import { formatRelativeTime } from '../utils/formatters';
@@ -26,7 +27,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onRefreshListings,
 }) => {
   const { user, refreshUsers } = useAuth();
+  const { openChatWithConversation } = useChat();
 
+  const [error, setError] = useState('');
+  const [reviewContext, setReviewContext] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState<'reports' | 'users' | 'listings' | 'audit'>('reports');
 
   // Reports
@@ -36,28 +40,30 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   // Users
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [userReason, setUserReason] = useState('');
 
   // Listings for Moderation
   const [listings, setListings] = useState<Listing[]>([]);
-  const [removalReason, setRemovalReason] = useState('');
 
   // Audit Logs
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
 
   useEffect(() => {
-    loadAllData();
-  }, []);
+    if (user?.isAdmin) void loadAllData();
+  }, [user?.id]);
+
+  useEffect(() => {
+    let cancelled = false; setReviewContext({});
+    if (selectedReport) {
+      dbService.getReportContext(selectedReport.id).then((context) => { if (!cancelled) setReviewContext(context); }).catch((error) => { if (!cancelled) setError(error.message); });
+    }
+    return () => { cancelled = true; };
+  }, [selectedReport?.id]);
 
   const loadAllData = async () => {
-    const r = await dbService.getReports();
-    setReports(r);
-    const u = await dbService.getUsers();
-    setUsers(u);
-    const l = await dbService.getListings({ includeReturned: true });
-    setListings(l);
-    const logs = await dbService.getAuditLogs();
-    setAuditLogs(logs);
+    try {
+      const [r, u, l, logs] = await Promise.all([dbService.getReports(), dbService.getUsers(), dbService.getListings({ includeReturned: true }), dbService.getAuditLogs()]);
+      setReports(r); setUsers(u); setListings(l); setAuditLogs(logs); setError('');
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not load administrator data.'); }
   };
 
   if (!user || !user.isAdmin) {
@@ -76,6 +82,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   const handleResolveReport = async (status: 'Dismissed' | 'Confirmed') => {
     if (!selectedReport) return;
+    if (!adminResolutionNote.trim()) { setError('An administrative reason is required.'); return; }
     try {
       await dbService.resolveReport(
         selectedReport.id,
@@ -85,19 +92,10 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         adminResolutionNote
       );
 
-      if (status === 'Confirmed' && selectedReport.contentType === 'listing') {
-        const shouldRemove = window.confirm(
-          'Remove this listing from public search now?'
-        );
-        if (shouldRemove) {
-          await dbService.removeListing(
-            selectedReport.contentId,
-            user.id,
-            user.name,
-            adminResolutionNote || selectedReport.reason
-          );
-          onRefreshListings();
-        }
+      if (status === 'Confirmed' && selectedReport.contentType !== 'user' && window.confirm(`Remove this ${selectedReport.contentType} now?`)) {
+        const remove = selectedReport.contentType === 'listing' ? dbService.removeListing : dbService.removeMessage;
+        await remove(selectedReport.contentId, user.id, user.name, adminResolutionNote);
+        onRefreshListings();
       }
 
       setAdminResolutionNote('');
@@ -108,11 +106,23 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
     }
   };
 
-  const handleRemoveListing = async (listingId: string) => {
-    const reason = removalReason.trim() || 'Violates community guidelines';
+  const handleRemoveReportedContent = async () => {
+    if (!selectedReport || selectedReport.contentType === 'user') return;
+    const reason = (window.prompt('Reason for removal (sent to owner):', selectedReport.adminNotes || '') || '').trim();
+    if (!reason) return;
+    try {
+      const remove = selectedReport.contentType === 'listing' ? dbService.removeListing : dbService.removeMessage;
+      await remove(selectedReport.contentId, user.id, user.name, reason);
+      setReviewContext(await dbService.getReportContext(selectedReport.id));
+      await loadAllData(); onRefreshListings();
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not remove reported content.'); }
+  };
+
+  const handleRemoveListing = async (listingId: string, suppliedReason: string) => {
+    const reason = suppliedReason.trim();
+    if (!reason) { setError('Enter a reason before removing content.'); return; }
     try {
       await dbService.removeListing(listingId, user.id, user.name, reason);
-      setRemovalReason('');
       await loadAllData();
       onRefreshListings();
     } catch (err: any) {
@@ -122,8 +132,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   const handleToggleSuspend = async (targetUser: UserProfile) => {
     const isSuspending = !targetUser.isSuspended;
-    const reason =
-      userReason.trim() || (isSuspending ? 'Account suspended by administrator' : 'Account restored by administrator');
+    const reason = (window.prompt(`Reason to ${isSuspending ? 'suspend' : 'restore'} ${targetUser.name}:`) || '').trim();
+    if (!reason) { setError('Enter a reason before changing an account status.'); return; }
 
     try {
       await dbService.setAccountSuspension(
@@ -133,7 +143,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
         user.name,
         reason
       );
-      setUserReason('');
       refreshUsers();
       await loadAllData();
     } catch (err: any) {
@@ -151,6 +160,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             <h2 className="text-base font-bold text-neutral-900">Administration</h2>
           </div>
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors"
           >
@@ -210,6 +220,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
         {/* Content Body */}
         <div className="overflow-y-auto p-6 flex-1 text-xs">
+          {error && <p role="alert" className="p-3 mb-3 bg-red-50 text-red-700 rounded-lg">{error}</p>}
           {activeTab === 'reports' && (
             <div className="space-y-4">
               {selectedReport ? (
@@ -231,16 +242,33 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     <p className="text-neutral-800 italic">"{selectedReport.contentSnippet}"</p>
                   </div>
 
+                  <div className="text-neutral-600 space-y-1">
+                    <p>Reporter: {selectedReport.reporterName}</p><p>Content owner: {selectedReport.ownerName}</p>
+                    <p>Submitted: {new Date(selectedReport.createdAt).toLocaleString()}</p>
+                    {reviewContext.title && <p>Listing: {reviewContext.title} · {reviewContext.status}</p>}
+                    {reviewContext.locationFound && <p>Found: {reviewContext.locationFound} · {reviewContext.dateFound}</p>}
+                    {reviewContext.listing && <p>Related listing: {reviewContext.listing.title} · {reviewContext.listing.status}</p>}
+                    {reviewContext.conversation && <><p>Conversation: {reviewContext.conversation.id}</p><button className="text-sjsu-600 underline" onClick={() => { onClose(); void openChatWithConversation(reviewContext.conversation.id); }}>Review full conversation</button></>}
+                    {reviewContext.content && <p>Current message: {reviewContext.content}</p>}
+                    {reviewContext.email && <p>Account: {reviewContext.name} ({reviewContext.email}) · {reviewContext.isSuspended ? 'Suspended' : 'Active'}</p>}
+                  </div>
                   <div className="p-3 bg-red-50/60 rounded-xl border border-red-100">
                     <p className="text-red-800 font-semibold mb-1">Reason:</p>
                     <p className="text-red-900">{selectedReport.reason}</p>
                   </div>
 
+                  {selectedReport.contentType !== 'user' && (
+                    <div className="flex items-center gap-2">
+                      <button disabled={!!reviewContext.isRemoved} onClick={() => void handleRemoveReportedContent()} className="px-3 py-2 rounded-lg bg-red-50 text-red-700 disabled:bg-neutral-100 disabled:text-neutral-500">
+                        {reviewContext.isRemoved ? 'Content removed' : 'Remove reported content'}
+                      </button>
+                    </div>
+                  )}
                   {selectedReport.status === 'Pending' ? (
                     <div className="space-y-3 pt-2">
                       <input
                         type="text"
-                        placeholder="Resolution note (optional)..."
+                        placeholder="Administrative reason (required)..."
                         value={adminResolutionNote}
                         onChange={(e) => setAdminResolutionNote(e.target.value)}
                         className="w-full border border-neutral-200 rounded-lg p-2 bg-white focus:outline-neutral-900"
@@ -264,6 +292,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   ) : (
                     <div className="p-2.5 bg-neutral-100 rounded-lg text-neutral-600">
                       Resolved as {selectedReport.status} by {selectedReport.resolvedBy}.
+                      <p>{selectedReport.adminNotes} · {selectedReport.resolvedAt && new Date(selectedReport.resolvedAt).toLocaleString()}</p>
                     </div>
                   )}
                 </div>
@@ -277,7 +306,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     reports.map((rep) => (
                       <div
                         key={rep.id}
-                        onClick={() => setSelectedReport(rep)}
+                        onClick={() => { setSelectedReport(rep); setAdminResolutionNote(''); }}
                         className="p-3 bg-white border border-neutral-200 rounded-xl hover:border-neutral-300 transition-colors cursor-pointer flex items-center justify-between"
                       >
                         <div className="space-y-0.5">
@@ -341,8 +370,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                       onClick={() => {
                         const r = prompt('Reason for removal (sent to owner):');
                         if (r) {
-                          setRemovalReason(r);
-                          handleRemoveListing(l.id);
+                          void handleRemoveListing(l.id, r);
                         }
                       }}
                       className="px-2.5 py-1.5 text-red-600 hover:bg-red-50 rounded-lg font-semibold shrink-0"

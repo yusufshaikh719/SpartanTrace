@@ -5,7 +5,7 @@ import { dbService } from '../services/db';
 
 interface ReportModalProps {
   reportData: {
-    contentType: 'listing' | 'message';
+    contentType: 'listing' | 'message' | 'user';
     contentId: string;
     ownerId: string;
     ownerName: string;
@@ -76,6 +76,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             </h2>
           </div>
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-full"
           >
@@ -95,6 +96,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               Reason
             </label>
             <textarea
+              aria-label="Reason"
               rows={3}
               placeholder="Explain why this content should be removed..."
               value={reason}

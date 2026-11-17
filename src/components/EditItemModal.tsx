@@ -3,6 +3,8 @@ import { X, AlertCircle } from 'lucide-react';
 import { Listing, ItemCategory } from '../types';
 import { ITEM_CATEGORIES, SJSU_LOCATIONS } from '../utils/constants';
 import { dbService } from '../services/db';
+import { readPhoto } from '../utils/photos';
+import { campusDate, listingErrors } from '../utils/listings';
 
 interface EditItemModalProps {
   listing: Listing;
@@ -11,7 +13,7 @@ interface EditItemModalProps {
 }
 
 export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, onSuccess }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = campusDate();
 
   const [title, setTitle] = useState(listing.title);
   const [description, setDescription] = useState(listing.description);
@@ -22,35 +24,29 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReadingPhoto, setIsReadingPhoto] = useState(false);
 
   const validate = () => {
-    const errs: Record<string, string> = {};
-
-    if (!title.trim() || title.trim().length < 4) {
-      errs.title = 'Title must be at least 4 characters';
-    }
-    if (!description.trim() || description.trim().length < 10) {
-      errs.description = 'Description must be at least 10 characters';
-    }
-    if (!photoUrl.trim()) {
-      errs.photoUrl = 'Photo URL is required';
-    }
-    if (!locationFound.trim()) {
-      errs.locationFound = 'Location is required';
-    }
-    if (!dateFound) {
-      errs.dateFound = 'Date found is required';
-    } else if (dateFound > todayStr) {
-      errs.dateFound = 'Date found cannot be later than current date';
-    }
-
+    const errs = listingErrors({ title, description, photoUrl, category, locationFound, dateFound });
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
+  const handlePhoto = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsReadingPhoto(true);
+    try {
+      setPhotoUrl(await readPhoto(file));
+      setErrors((previous) => ({ ...previous, photoUrl: '' }));
+    } catch (error) {
+      setErrors((previous) => ({ ...previous, photoUrl: error instanceof Error ? error.message : 'Could not load photo.' }));
+    } finally { setIsReadingPhoto(false); }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (isReadingPhoto || !validate()) return;
 
     setIsSubmitting(true);
     try {
@@ -79,10 +75,11 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Edit Found Item (FR09)</h2>
+            <h2 className="text-base font-bold text-slate-900">Edit Found Item</h2>
             <p className="text-xs text-slate-500">Update listing details without creating duplicates</p>
           </div>
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
           >
@@ -97,6 +94,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
               Title *
             </label>
             <input
+              aria-label="Item title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -105,13 +103,27 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
             {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
           </div>
 
+          <div className="space-y-2">
+            <label htmlFor="edit-photo-url" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Item photo *</label>
+            <div className="flex items-center gap-3">
+              {photoUrl && <img src={photoUrl} alt="Updated item preview" className="w-16 h-16 object-cover rounded-xl border" />}
+              <label className="text-xs text-sjsu-600 font-semibold cursor-pointer">Replace photo
+                <input aria-label="Replace photo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={isReadingPhoto} onChange={handlePhoto} className="block mt-1 text-xs max-w-full" />
+              </label>
+            </div>
+            <input id="edit-photo-url" aria-label="Photo URL" type="text" value={photoUrl} onChange={(event) => setPhotoUrl(event.target.value)} className="w-full text-xs border border-slate-300 rounded-xl px-3 py-2" placeholder="https://example.com/item.jpg" />
+            {isReadingPhoto && <p role="status" className="text-xs text-neutral-500">Reading photo…</p>}
+            {errors.photoUrl && <p role="alert" className="text-xs text-red-600">{errors.photoUrl}</p>}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                 Category *
               </label>
               <select
-                value={category}
+                aria-label="Category"
+              value={category}
                 onChange={(e) => setCategory(e.target.value as ItemCategory)}
                 className="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white focus:outline-sjsu-500"
               >
@@ -128,7 +140,8 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
                 Date Found *
               </label>
               <input
-                type="date"
+                aria-label="Date found"
+              type="date"
                 max={todayStr}
                 value={dateFound}
                 onChange={(e) => setDateFound(e.target.value)}
@@ -143,6 +156,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
               Location Found *
             </label>
             <select
+              aria-label="Location found"
               value={locationFound}
               onChange={(e) => setLocationFound(e.target.value)}
               className="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white focus:outline-sjsu-500"
@@ -160,6 +174,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
               Description *
             </label>
             <textarea
+              aria-label="Description"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -178,7 +193,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ listing, onClose, 
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isReadingPhoto}
               className="bg-sjsu-500 hover:bg-sjsu-600 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-colors"
             >
               {isSubmitting ? 'Saving...' : 'Save Edits'}

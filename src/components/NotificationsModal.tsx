@@ -7,26 +7,28 @@ import { AppNotification } from '../types';
 
 interface NotificationsModalProps {
   onClose: () => void;
-  onOpenListing: (listingId: string) => void;
+  onOpenListing: (listingId: string) => void | Promise<void>;
 }
 
 export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   onClose,
   onOpenListing,
 }) => {
-  const { notifications, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, error, markAsRead, markAllAsRead } = useNotifications();
   const { openChatWithConversation } = useChat();
 
   const handleNotificationClick = async (notif: AppNotification) => {
+    try {
     await markAsRead(notif.id);
 
     if (notif.linkType === 'listing') {
-      onOpenListing(notif.linkId);
+      await onOpenListing(notif.linkId);
       onClose();
     } else if (notif.linkType === 'conversation') {
-      openChatWithConversation(notif.linkId);
+      await openChatWithConversation(notif.linkId);
       onClose();
     }
+    } catch (error) { alert(error instanceof Error ? error.message : 'Could not open notification.'); }
   };
 
   const getNotificationIcon = (type: AppNotification['type']) => {
@@ -57,14 +59,15 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           <div className="flex items-center gap-2">
             {notifications.some((n) => !n.isRead) && (
               <button
-                onClick={markAllAsRead}
+                onClick={() => { void markAllAsRead().catch((e) => alert(e.message)); }}
                 className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
               >
                 Mark all read
               </button>
             )}
             <button
-              onClick={onClose}
+              aria-label="Close dialog"
+            onClick={onClose}
               className="p-1 text-gray-400 hover:text-gray-700 rounded-full"
             >
               <X className="w-5 h-5" />
@@ -74,6 +77,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
         {/* List */}
         <div className="overflow-y-auto p-4 space-y-2.5">
+          {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
           {notifications.length === 0 ? (
             <div className="text-center py-10 text-xs text-gray-400">
               You're all caught up! No notifications.

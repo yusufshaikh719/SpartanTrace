@@ -3,6 +3,7 @@ import { X, Sparkles, Bell, Plus, Trash2, MapPin, Tag, AlertCircle } from 'lucid
 import { LostItemAlert } from '../types';
 import { ITEM_CATEGORIES, SJSU_LOCATIONS } from '../utils/constants';
 import { useAuth } from '../context/AuthContext';
+import { campusDate } from '../utils/listings';
 import { dbService } from '../services/db';
 
 interface AlertsModalProps {
@@ -17,6 +18,7 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
   const [keywords, setKeywords] = useState('');
   const [category, setCategory] = useState('');
   const [location, setLocation] = useState('');
+  const [dateLost, setDateLost] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,9 +31,9 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
   const loadAlerts = async () => {
     if (!user) return;
     setIsLoading(true);
-    const data = await dbService.getAlerts(user.id);
-    setAlerts(data);
-    setIsLoading(false);
+    try { setAlerts(await dbService.getAlerts(user.id)); }
+    catch (error) { setError(error instanceof Error ? error.message : 'Could not load alerts.'); }
+    finally { setIsLoading(false); }
   };
 
   const handleCreateAlert = async (e: React.FormEvent) => {
@@ -52,11 +54,12 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
         keywords: keywords.trim(),
         category: category || undefined,
         location: location || undefined,
+        dateLost: dateLost || undefined,
       });
 
       setKeywords('');
       setCategory('');
-      setLocation('');
+      setLocation(''); setDateLost('');
       await loadAlerts();
     } catch (err: any) {
       setError(err.message || 'Failed to save alert');
@@ -66,8 +69,8 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
   };
 
   const handleDelete = async (id: string) => {
-    await dbService.deleteAlert(id);
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
+    try { await dbService.deleteAlert(id); setAlerts((prev) => prev.filter((a) => a.id !== id)); }
+    catch (error) { setError(error instanceof Error ? error.message : 'Could not delete alert.'); }
   };
 
   return (
@@ -80,6 +83,7 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
             <h2 className="text-base font-bold text-neutral-900">Lost Item Alerts</h2>
           </div>
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-full transition-colors"
           >
@@ -107,7 +111,8 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
 
             <div className="grid grid-cols-2 gap-2">
               <select
-                value={category}
+                aria-label="Category"
+              value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full text-xs border border-neutral-200 rounded-xl px-2.5 py-2 bg-white focus:outline-neutral-900 text-neutral-700"
               >
@@ -133,6 +138,7 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
               </select>
             </div>
 
+            <label className="block text-xs text-neutral-600">Date lost (optional)<input aria-label="Date lost" className="w-full mt-1 border rounded-lg p-2" type="date" value={dateLost} max={campusDate()} onChange={(e) => setDateLost(e.target.value)} /></label>
             {error && <p className="text-xs text-red-500">{error}</p>}
 
             <button
@@ -164,7 +170,7 @@ export const AlertsModal: React.FC<AlertsModalProps> = ({ onClose }) => {
                     <div>
                       <p className="font-semibold text-neutral-900">{a.keywords || 'Any keyword'}</p>
                       <p className="text-[11px] text-neutral-400">
-                        {[a.category, a.location].filter(Boolean).join(' • ') || 'All categories'}
+                        {[a.category, a.location, a.dateLost && `Lost ${a.dateLost}`].filter(Boolean).join(' • ') || 'All categories'}
                       </p>
                     </div>
 

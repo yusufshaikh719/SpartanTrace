@@ -36,10 +36,5 @@ export const ITEM_CATEGORIES = [
 
 export const CAMPUS_HOTSPOTS = [
   { label: 'All Campus Locations', value: 'All' },
-  { label: 'MLK Library', value: 'Dr. Martin Luther King, Jr. Library' },
-  { label: 'Student Union', value: 'Diaz Compean Student Union' },
-  { label: 'SRAC Aquatic Center', value: 'Spartan Recreation and Aquatic Center' },
-  { label: 'Engineering Building', value: 'Engineering Building' },
-  { label: 'Duncan Hall', value: 'Duncan Hall' },
-  { label: 'Tower Lawn / 7th St', value: 'Tower Lawn' },
+  ...SJSU_LOCATIONS.map((location) => ({ label: location, value: location })),
 ];

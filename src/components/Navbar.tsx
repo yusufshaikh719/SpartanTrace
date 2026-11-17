@@ -27,8 +27,8 @@ interface NavbarProps {
   onOpenAuthModal: () => void;
   onOpenSupabaseModal: () => void;
   onOpenNotifications: () => void;
-  viewMode: 'all' | 'my-listings';
-  onViewModeChange: (mode: 'all' | 'my-listings') => void;
+  viewMode: 'all' | 'my-listings' | 'my-claims';
+  onViewModeChange: (mode: 'all' | 'my-listings' | 'my-claims') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -43,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   viewMode,
   onViewModeChange,
 }) => {
-  const { user, isAuthenticated, logout, switchUser, availableUsers } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const { conversations, openChatWithConversation } = useChat();
 
@@ -52,7 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-neutral-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4 sm:gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3 sm:h-16 sm:flex-nowrap sm:gap-6 sm:py-0">
           {/* Authentic Spartan Campus Identity */}
           <div
             className="flex items-center gap-3 cursor-pointer shrink-0"
@@ -64,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="w-9 h-9 rounded-xl bg-sjsu-navy text-sjsu-gold flex items-center justify-center font-black text-base tracking-tight shadow-xs border border-sjsu-gold/20">
               S
             </div>
-            <div>
+            <div className="hidden sm:block">
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-base sm:text-lg text-neutral-900 tracking-tight leading-tight">
                   Spartan<span className="text-sjsu-500">Trace</span>
@@ -81,11 +81,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Clean Central Search Bar */}
-          <div className="flex-1 max-w-lg relative flex items-center">
+          <div className="order-3 w-full min-w-0 relative flex items-center sm:order-none sm:flex-1 sm:max-w-lg">
             <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search items by keyword, brand, or location..."
+              placeholder="Search item titles and descriptions..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               className="w-full bg-neutral-100 hover:bg-neutral-100/90 focus:bg-white rounded-xl pl-9 pr-9 py-2 text-xs sm:text-sm text-neutral-900 placeholder-neutral-400 border border-transparent focus:border-sjsu-500 focus:outline-none focus:ring-2 focus:ring-sjsu-500/15 transition-all"
@@ -102,9 +102,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Action Navigation */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Primary Action Button */}
             <button
+              aria-label="Report Item"
               onClick={onOpenPostModal}
               className="flex items-center gap-1.5 bg-sjsu-600 hover:bg-sjsu-700 text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl transition-colors shadow-xs"
             >
@@ -112,9 +113,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden sm:inline">Report Item</span>
             </button>
 
+            <button aria-label="Database connection" title="Database connection" onClick={onOpenSupabaseModal} className="p-2 text-neutral-500 hover:bg-neutral-100 rounded-xl"><Database className="w-4 h-4" /></button>
             {/* Messages */}
             <button
               onClick={() => {
+                if (!isAuthenticated) { onOpenAuthModal(); return; }
                 if (conversations.length > 0) {
                   openChatWithConversation(conversations[0].id);
                 } else {
@@ -132,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Notifications */}
             <button
-              onClick={onOpenNotifications}
+              onClick={() => isAuthenticated ? onOpenNotifications() : onOpenAuthModal()}
               className="relative p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-xl transition-colors"
               title="Notifications"
             >
@@ -146,6 +149,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="relative">
               {isAuthenticated && user ? (
                 <button
+                  aria-label="Account menu"
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="w-8 h-8 rounded-xl bg-sjsu-navy text-amber-300 hover:ring-2 hover:ring-sjsu-500/20 font-bold text-xs flex items-center justify-center transition-all border border-amber-400/20"
                 >
@@ -222,34 +226,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span>Database Settings</span>
                     </button>
                   </div>
-
-                  {/* Switch Account (Only if multiple local user accounts exist) */}
-                  {availableUsers.length > 1 && (
-                    <div className="border-t border-neutral-100 pt-1.5 px-3 pb-1">
-                      <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider px-1 mb-1">
-                        Switch Account
-                      </p>
-                      <div className="space-y-0.5">
-                        {availableUsers.map((u) => (
-                          <button
-                            key={u.id}
-                            onClick={() => {
-                              switchUser(u.id);
-                              setShowUserMenu(false);
-                            }}
-                            className={`w-full px-2.5 py-1.5 rounded-lg text-left text-xs flex items-center justify-between transition-colors ${
-                              user.id === u.id
-                                ? 'bg-neutral-100 text-neutral-900 font-bold'
-                                : 'text-neutral-600 hover:bg-neutral-50'
-                            }`}
-                          >
-                            <span className="truncate">{u.name}</span>
-                            <span className="text-[10px] text-neutral-400 capitalize">{u.role}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   <div className="border-t border-neutral-100 pt-1 mt-1">
                     <button

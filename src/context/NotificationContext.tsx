@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AppNotification } from '../types';
 import { dbService } from '../services/db';
 import { useAuth } from './AuthContext';
 
 interface NotificationContextType {
+  error: string;
   notifications: AppNotification[];
   unreadCount: number;
   markAsRead: (id: string) => Promise<void>;
@@ -15,6 +16,8 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const [error, setError] = useState('');
+  const userId = useRef(user?.id); userId.current = user?.id;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const refreshNotifications = useCallback(async () => {
@@ -22,11 +25,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setNotifications([]);
       return;
     }
-    const notifs = await dbService.getNotifications(user.id);
-    setNotifications(notifs);
+    try {
+      const notifs = await dbService.getNotifications(user.id);
+      if (userId.current === user.id) { setNotifications(notifs); setError(''); }
+    } catch (error) { if (userId.current === user.id) setError(error instanceof Error ? error.message : 'Could not load notifications.'); }
   }, [user]);
 
   useEffect(() => {
+    setNotifications([]);
     refreshNotifications();
     const interval = setInterval(refreshNotifications, 6000);
     return () => clearInterval(interval);
@@ -48,6 +54,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   return (
     <NotificationContext.Provider
       value={{
+        error,
         notifications,
         unreadCount,
         markAsRead,

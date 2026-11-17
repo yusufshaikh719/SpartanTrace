@@ -1,115 +1,60 @@
-# 🛡️ SpartanTrace - SJSU Campus Lost & Found Platform
+# SpartanTrace
 
-> An SJSU-specific item recovery web application built with **React**, **TypeScript**, and **Tailwind CSS** in the marketplace style of **OfferUp.com**, with support for **Supabase Free Tier** PostgreSQL database.
+SJSU lost-and-found application built with React, TypeScript, Tailwind, and Supabase. Supabase is the source of truth for every workflow. Browser storage holds connection settings and the Supabase Auth session; it does not substitute for a failed database write or authenticate local accounts.
 
----
+## Run
 
-## 🌟 Key Features & Requirements Coverage
+Use Node.js 24 or newer (CI uses Node.js 24).
 
-SpartanTrace is designed based on the functional specifications and product backlog (US01–US15, FR01–FR32):
-
-### 1. 🔍 Finder Workflows (User Stories US01 – US04)
-- **Post a Found Item (FR01, FR02, FR03)**:
-  - Form capturing title, description, photo (upload from device or URL / quick presets), category, SJSU campus location, and date found.
-  - Strict validation preventing submission if any field is missing or if the date found is in the future.
-  - Generates unique ID, sets status to `Available`, and publishes to active search results.
-- **Manage Claims & Ownership Requests (FR04, FR05, FR06)**:
-  - Only the Finder who created the listing can view all claims submitted for that listing (claimant name, email, submission timestamp, and claim status).
-  - Open a dedicated direct-message conversation with any claimant directly associated with that claim.
-  - Listing lifecycle status transitions: `Available` ➔ `Pending` (while reviewing claim) ➔ `Claimed` (when claimant is accepted).
-- **Complete an Item Return (FR07, FR08)**:
-  - Finder can confirm handover and mark item as `Returned`.
-  - Records the exact return date and time.
-  - Once marked `Returned`, item is automatically removed from active search results and alert matching, while being retained in the Finder's history and claimant's claim history as read-only.
-- **Update Listing (FR09, FR10)**:
-  - Finder can edit title, description, photo, category, location, and date while in `Available`, `Pending`, or `Claimed` status. Returned listings are locked as read-only.
-  - Validates edits with the same rules and updates without creating duplicates.
-
-### 2. 🔎 Looker Workflows (User Stories US05 – US08)
-- **Search Lost Items (FR11, FR12)**:
-  - Search active found-item listings by keyword matching title and description.
-  - Sort by **Relevance** (default) or **Newest**. Equal relevance displays most recently posted items first.
-- **Narrow Results with Filters (FR13)**:
-  - Filter by category pills, campus location dropdown, and date range (`Today`, `Past 3 Days`, `Past Week`, `Past Month`, `Anytime`).
-  - Filters combine seamlessly and can be cleared individually or all at once.
-- **Contact Finder & Claim an Item (FR14, FR15)**:
-  - Authenticated Lookers can submit an active claim for an Available listing with proof of ownership details.
-  - Automatically initializes or opens a direct-message conversation between the Looker and Finder.
-- **Lost-Item Alerts & Automatic Matching (FR16, FR17, FR25)**:
-  - Lookers can register active lost-item alerts with keywords, optional category, and location.
-  - When any newly published Available listing matches an active alert, SpartanTrace immediately triggers an in-app notification linking directly to the listing.
-
-### 3. 🔐 System Workflows (User Stories US09 – US12)
-- **SJSU Email Registration & Verification (FR18, FR19, FR20)**:
-  - Registration is strictly restricted to verified `@sjsu.edu` university emails. Non-SJSU emails are rejected.
-  - Email verification link flow with activation confirmation.
-- **Authentication & Security (FR21, FR22, FR23)**:
-  - Secure login with verified SJSU credentials.
-  - Denies access to suspended accounts.
-  - 30-minute inactivity session expiration.
-  - 15-minute temporary lockout after 5 consecutive failed login attempts.
-- **In-App Notifications Center (FR24)**:
-  - Notification bells for claims received, messages sent, claim approvals, and alert matches.
-  - Instant read/unread tracking and direct navigation.
-
-### 4. ⚖️ Administrator Workflows (User Stories US13 – US15)
-- **Content Reporting & Review Queue (FR26, FR27, FR28)**:
-  - Authenticated users can report any listing or direct message with a required reason.
-  - Admin review dashboard displays reported content snippet, owner, reporter, and reason.
-  - Admin can resolve by marking reports as **Dismissed** or **Confirmed**.
-- **Content Removal (FR29, FR30)**:
-  - Administrators can remove invalid or violating listings or messages.
-  - Content is immediately removed from normal user view while retaining audit records.
-  - Automatically notifies the content owner with the administrative reason.
-- **Account Suspension & Audit Log (FR31, FR32)**:
-  - Administrator can suspend or restore user accounts.
-  - Comprehensive, read-only Admin Audit Log recording admin name, action, target ID, reason, and timestamp.
-
----
-
-## 🎨 OfferUp Design Aesthetic
-- **Header**: OfferUp clean white top bar with emerald green action button, prominent search bar with location dropdown pill, direct message icon, notifications bell, and user avatar.
-- **Horizontal Category Bar**: Quick icon pills (`Electronics`, `Keys`, `IDs & Cards`, `Bags & Backpacks`, `Clothing`, etc.).
-- **Marketplace Grid**: High-resolution image cards with `FOUND` pill, status badge, location pin, relative timestamp (`2h ago`), and hover zoom.
-- **Direct Messaging Drawer**: OfferUp-style sliding chat thread with item summary preview at the top.
-- **1-Click Test Switcher**: Top banner allows testing between **Jane Spartan (Finder)**, **Sam Student (Looker)**, and **Officer Alex (Admin)** instantly without needing separate incognito windows.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- npm or yarn
-
-### Installation
-```bash
-# 1. Install dependencies
+```sh
 npm install
-
-# 2. Run local dev server
+cp .env.example .env
+# Set the public Supabase project URL and publishable/anon key in .env.
 npm run dev
+```
 
-# 3. Build production bundle
+Check public hosted readiness without creating accounts or changing data:
+
+```sh
+npm run supabase:check
+# For a deployed frontend:
+npm run supabase:check -- --origin https://YOUR_APP_HOST
+```
+
+Prepare a deployment package for the dashboard editor without account access:
+
+```sh
+npm run supabase:prepare
+```
+
+This creates `deployment/supabase/` with fresh-install SQL, upgrade SQL, a standalone login function, instructions, and a SHA-256 manifest. It contains no `.env` or API keys.
+
+Database, email verification, and login-function deployment instructions are in [SUPABASE_SETUP.md](SUPABASE_SETUP.md). An unconfigured app displays setup guidance. It does not create demonstration accounts or save campus data locally.
+
+## Workflows
+
+- Finders post a required photo, title, description, category, campus location, and valid date; edit active listings; review claims; accept one claimant; and confirm a completed return.
+- Lookers search titles/descriptions, combine category/location/date filters, sort by relevance or newest, submit ownership evidence, and communicate in a claim-specific conversation.
+- Lost-item alerts support keywords, optional category/location/date lost, and persistent matching notifications. A listing must match each supplied category/location/date criterion and at least one keyword when keywords are supplied.
+- My listings and My claims retain returned-item history. Returned records and conversations are read-only. Removed content is unavailable to normal users.
+- Registration requires a name, SJSU email, password, and email confirmation. Login requires verified credentials and an active account. Inactive sessions expire after 30 minutes. Five failed application login attempts within 15 minutes lock the account for 15 minutes.
+- In-app notifications cover new claims, messages, claim decisions, alert matches, returns, and content removal. Messages and notifications refresh through authenticated polling.
+- Users report listings, individual messages, and Finder accounts. Administrators review report evidence and associated conversations, resolve reports with a reason, remove content, suspend/restore accounts, and inspect an immutable audit log.
+
+Permissions, transitions, matching, notifications, moderation, and audit writes are enforced in PostgreSQL. Multi-record workflows execute in one transaction. User IDs, names, and administrator privileges are never trusted from form data.
+
+## Verify
+
+```sh
+npm run typecheck
+npm test
+npx playwright install chromium
+npm run test:e2e
 npm run build
 ```
 
----
+The database tests execute the SQL schema, migrations, RLS policies, and transactional workflows in PGlite (a PostgreSQL engine). Browser tests run the actual React app and SQL through a test adapter that simulates Supabase Auth and PostgREST transport. They never modify the configured hosted project. These tests do not prove real email delivery, hosted Supabase Auth behavior, deployed Edge Function configuration, or production hosting. Those checks require the project setup in [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 
-## 🗄️ Supabase Free Tier Configuration
+The GitHub Actions verification workflow runs type checks, database/unit tests, the build, deployment-package generation, and browser scenarios without hosted credentials.
 
-SpartanTrace runs **out-of-the-box in local demo mode** with pre-seeded SJSU campus items and accounts. To connect to your free cloud Supabase instance:
-
-1. Create a free account and project at [Supabase](https://supabase.com).
-2. In the Supabase Dashboard, open the **SQL Editor**.
-3. Copy the contents of [`supabase/schema.sql`](./supabase/schema.sql) and paste them into the SQL editor, then click **Run**.
-4. Go to **Project Settings ➔ API** in Supabase and copy:
-   - `Project URL`
-   - `Project API anon key`
-5. Either:
-   - Paste them into your `.env` file:
-     ```env
-     VITE_SUPABASE_URL=https://your-project.supabase.co
-     VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-     ```
-   - OR click **"Supabase Settings / SQL"** directly in the top banner of the SpartanTrace web interface and paste them in the interactive modal.
+See [FEATURE_AUDIT.md](FEATURE_AUDIT.md) for requirement coverage and remaining hosted verification.

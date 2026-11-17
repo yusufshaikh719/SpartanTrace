@@ -12,6 +12,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ onClose, onConfigU
   const currentConfig = getSupabaseConfig();
   const [url, setUrl] = useState(currentConfig.url);
   const [key, setKey] = useState(currentConfig.key);
+  const [error, setError] = useState('');
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'connected' | 'error'>('idle');
 
   useEffect(() => {
@@ -24,15 +25,25 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ onClose, onConfigU
     if (isConn) {
       setTestStatus('connected');
     } else {
-      setTestStatus(currentConfig.isConfigured ? 'error' : 'idle');
+      setTestStatus(getSupabaseConfig().isConfigured ? 'error' : 'idle');
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    saveSupabaseConfig(url, key);
-    onConfigUpdated();
-    await checkConnection();
+    setError('');
+    setTestStatus('testing');
+    try {
+      saveSupabaseConfig(url, key);
+      const connected = await dbService.isSupabaseConnected();
+      if (connected) { window.location.reload(); return; }
+      setTestStatus('error');
+      setError('Connection failed or schema is outdated. Apply supabase/schema.sql and check the credentials.');
+      onConfigUpdated();
+    } catch (error) {
+      setTestStatus('error');
+      setError(error instanceof Error ? error.message : 'Could not save database settings.');
+    }
   };
 
   const handleClear = () => {
@@ -40,12 +51,12 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ onClose, onConfigU
     setUrl('');
     setKey('');
     setTestStatus('idle');
-    onConfigUpdated();
+    window.location.reload();
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="relative bg-white rounded-3xl max-w-md w-full shadow-2xl border border-neutral-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div role="dialog" aria-modal="true" aria-label="Database connection" className="relative bg-white rounded-3xl max-w-md w-full shadow-2xl border border-neutral-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -53,6 +64,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ onClose, onConfigU
             <h2 className="text-base font-bold text-neutral-900">Database Connection</h2>
           </div>
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-full transition-colors"
           >
@@ -87,7 +99,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ onClose, onConfigU
                   ? 'Connected to Supabase PostgreSQL'
                   : testStatus === 'error'
                   ? 'Unable to connect to Supabase'
-                  : 'Local Storage Mode'}
+                  : 'Supabase setup required'}
               </span>
             </div>
             <button
@@ -116,7 +128,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ onClose, onConfigU
 
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-1">
-                Public Anon Key
+                Public publishable / anon key
               </label>
               <input
                 type="password"
@@ -133,7 +145,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ onClose, onConfigU
                 onClick={handleClear}
                 className="text-xs text-neutral-500 hover:text-red-600 underline"
               >
-                Reset to local storage
+                Use environment settings
               </button>
 
               <button
@@ -145,6 +157,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ onClose, onConfigU
             </div>
           </form>
 
+          {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
           {/* Setup notice */}
           <div className="bg-neutral-50 border border-neutral-100 rounded-2xl p-4 text-xs text-neutral-600 space-y-1.5">
             <p className="font-semibold text-neutral-900">Supabase Free Tier Setup</p>

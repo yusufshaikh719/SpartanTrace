@@ -21,7 +21,7 @@ interface ItemDetailModalProps {
   onClose: () => void;
   onOpenClaimModal: (listing: Listing) => void;
   onOpenEditModal: (listing: Listing) => void;
-  onOpenReportModal: (type: 'listing', id: string, ownerId: string, ownerName: string, snippet: string) => void;
+  onOpenReportModal: (type: 'listing' | 'user', id: string, ownerId: string, ownerName: string, snippet: string) => void;
   onListingUpdated: () => void;
 }
 
@@ -36,6 +36,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   const { user } = useAuth();
   const { openChatForClaim } = useChat();
 
+  const [claimError, setClaimError] = useState('');
   const [claims, setClaims] = useState<Claim[]>([]);
   const [isLoadingClaims, setIsLoadingClaims] = useState(false);
   const [statusActionLoading, setStatusActionLoading] = useState(false);
@@ -43,17 +44,20 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   const isOwner = user && listing && user.id === listing.finderId;
 
   useEffect(() => {
-    if (listing && isOwner) {
-      loadClaims();
+    if (listing && user) {
+      void loadClaims();
+      const timer = setInterval(() => { void loadClaims(); }, 5000);
+      return () => clearInterval(timer);
     }
-  }, [listing?.id, isOwner]);
+    setClaims([]);
+  }, [listing?.id, user?.id, listing?.status]);
 
   const loadClaims = async () => {
     if (!listing) return;
     setIsLoadingClaims(true);
-    const data = await dbService.getClaimsForListing(listing.id);
-    setClaims(data);
-    setIsLoadingClaims(false);
+    try { setClaims(await dbService.getClaimsForListing(listing.id)); setClaimError(''); }
+    catch (error) { setClaimError(error instanceof Error ? error.message : 'Could not load claims.'); }
+    finally { setIsLoadingClaims(false); }
   };
 
   if (!listing) return null;
@@ -62,7 +66,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     if (!listing || !isOwner) return;
     setStatusActionLoading(true);
     try {
-      await dbService.updateListingStatus(listing.id, newStatus);
+      if (newStatus === 'Returned' && !window.confirm('Confirm that you have handed this item back to its accepted owner.')) return;
+      await dbService.updateListingStatus(listing.id, newStatus, newStatus === 'Returned' && user ? { confirmedBy: user.id } : undefined);
       onListingUpdated();
     } catch (err: any) {
       alert(err.message || 'Failed to update status');
@@ -74,10 +79,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   const handleClaimStatusChange = async (claimId: string, newStatus: 'Accepted' | 'Rejected') => {
     try {
       await dbService.updateClaimStatus(claimId, newStatus);
-      if (newStatus === 'Accepted') {
-        await dbService.updateListingStatus(listing.id, 'Claimed');
-        onListingUpdated();
-      }
+      onListingUpdated();
       loadClaims();
     } catch (err: any) {
       alert(err.message || 'Failed to update claim');
@@ -114,6 +116,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
           </div>
 
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors"
           >
@@ -164,6 +167,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             </div>
           </div>
 
+          {claimError && <p role="alert" className="text-xs text-red-600">{claimError}</p>}
           {/* Action Row */}
           {!isOwner && (
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-neutral-100">
@@ -173,11 +177,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
               <button
                 onClick={() => onOpenClaimModal(listing)}
-                disabled={listing.status === 'Returned'}
+                disabled={listing.status !== 'Available' || claims.some((c) => c.status !== 'Rejected')}
                 className="w-full sm:w-auto px-5 py-2.5 bg-sjsu-600 hover:bg-sjsu-700 disabled:bg-neutral-200 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 flex items-center justify-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>Submit Ownership Claim</span>
+                <span>{claims.some((c) => c.status !== 'Rejected') ? 'Claim already submitted' : listing.status === 'Available' ? 'Submit Ownership Claim' : 'Claims closed'}</span>
               </button>
             </div>
           )}
@@ -190,6 +194,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   Finder Controls
                 </span>
                 <button
+                  disabled={listing.status === 'Returned'}
                   onClick={() => onOpenEditModal(listing)}
                   className="text-xs font-semibold text-sjsu-600 hover:text-sjsu-700 flex items-center gap-1"
                 >
@@ -200,7 +205,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-neutral-500">Change Status:</span>
-                {(['Available', 'Pending', 'Returned'] as const).map((st) => (
+                {(listing.status === 'Available' ? ['Pending'] as const : listing.status === 'Pending' ? ['Available'] as const : listing.status === 'Claimed' ? ['Returned'] as const : []).map((st) => (
                   <button
                     key={st}
                     onClick={() => handleUpdateStatus(st)}
@@ -211,7 +216,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
                     }`}
                   >
-                    {st}
+                    {st === 'Returned' ? 'Confirm item returned' : st === 'Pending' ? 'Review claims (Pending)' : 'Reopen as Available'}
                   </button>
                 ))}
               </div>
@@ -232,11 +237,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                           <span className="font-bold text-neutral-900">{claim.claimantName}</span>
                           <span className="text-[10px] font-semibold text-neutral-500">{claim.status}</span>
                         </div>
+                        <p className="text-neutral-500">{claim.claimantEmail} · {new Date(claim.createdAt).toLocaleString()}</p>
                         <p className="text-neutral-600 text-xs italic">"{claim.proofDescription}"</p>
                         <div className="flex items-center gap-2 pt-1">
-                          {claim.status === 'Pending' && (
+                          {claim.status === 'Pending' && listing.status !== 'Returned' && (
                             <>
                               <button
+                                disabled={listing.status !== 'Pending'}
+                                title={listing.status !== 'Pending' ? 'Set listing to Pending to review claims first' : 'Accept this claimant'}
                                 onClick={() => handleClaimStatusChange(claim.id, 'Accepted')}
                                 className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold"
                               >
@@ -269,8 +277,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             </div>
           )}
 
+          {!isOwner && claims.length > 0 && <div className="space-y-2 border-t pt-3"><h3 className="text-xs font-bold">Your claims</h3>{claims.map((claim) => <div key={claim.id} className="text-xs bg-neutral-50 p-3 rounded-xl"><p>{claim.status} · {new Date(claim.createdAt).toLocaleString()}</p><p>{claim.proofDescription}</p><button className="mt-2 text-sjsu-600 font-semibold" onClick={() => { onClose(); void openChatForClaim(claim.id); }}>Open conversation</button></div>)}</div>}
+          {listing.status === 'Returned' && <p className="text-xs text-emerald-700">Returned {listing.returnDate ? new Date(listing.returnDate).toLocaleString() : ''}. This record is read-only.</p>}
           {/* Report inappropriate item button */}
-          <div className="pt-1 text-right">
+          <div className="pt-1 text-right space-x-3">
+            {user && !isOwner && <button className="text-[11px] text-neutral-400 hover:text-red-600" onClick={() => { onClose(); onOpenReportModal('user', listing.finderId, listing.finderId, listing.finderName, listing.finderName); }}>Report account</button>}
             <button
               onClick={() => {
                 onClose();

@@ -4,24 +4,17 @@ import { ItemCategory } from '../types';
 import { ITEM_CATEGORIES, SJSU_LOCATIONS } from '../utils/constants';
 import { useAuth } from '../context/AuthContext';
 import { dbService } from '../services/db';
-import { getCampusPlaceholderImage } from '../utils/formatters';
+import { readPhoto } from '../utils/photos';
+import { campusDate, listingErrors } from '../utils/listings';
 
 interface PostItemModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const getLocalDateString = () => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess }) => {
   const { user } = useAuth();
-  const todayStr = getLocalDateString();
+  const todayStr = campusDate();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -33,52 +26,24 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReadingPhoto, setIsReadingPhoto] = useState(false);
 
   const validate = () => {
-    const errs: Record<string, string> = {};
-
-    if (!title.trim()) {
-      errs.title = 'Title is required';
-    } else if (title.trim().length < 4) {
-      errs.title = 'Title must be at least 4 characters';
-    }
-
-    if (!description.trim()) {
-      errs.description = 'Description is required';
-    } else if (description.trim().length < 10) {
-      errs.description = 'Please provide more details (at least 10 characters)';
-    }
-
-    if (!category) {
-      errs.category = 'Category is required';
-    }
-
-    if (!locationFound.trim()) {
-      errs.locationFound = 'Campus location is required';
-    }
-
-    if (!dateFound) {
-      errs.dateFound = 'Date found is required';
-    } else if (dateFound > todayStr) {
-      errs.dateFound = 'Date found cannot be in the future';
-    }
-
+    const errs = listingErrors({ title, description, photoUrl: photoUrl.trim() || customPhotoInput.trim(), category, locationFound, dateFound });
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setPhotoUrl(reader.result);
-          setCustomPhotoInput('');
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsReadingPhoto(true);
+    try {
+      setPhotoUrl(await readPhoto(file)); setCustomPhotoInput('');
+      setErrors((previous) => ({ ...previous, photoUrl: '' }));
+    } catch (error) {
+      setErrors((previous) => ({ ...previous, photoUrl: error instanceof Error ? error.message : 'Could not load photo.' }));
+    } finally { setIsReadingPhoto(false); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,13 +53,9 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
       return;
     }
 
-    let finalPhoto = photoUrl.trim() || customPhotoInput.trim();
-    if (!finalPhoto) {
-      finalPhoto = getCampusPlaceholderImage(category, title || category);
-      setPhotoUrl(finalPhoto);
-    }
+    const finalPhoto = photoUrl.trim() || customPhotoInput.trim();
 
-    if (!validate()) {
+    if (isReadingPhoto || !validate()) {
       return;
     }
 
@@ -134,6 +95,7 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
             <p className="text-xs text-neutral-500 mt-0.5">Post a found item to the SJSU campus registry</p>
           </div>
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors"
           >
@@ -146,7 +108,7 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
           {/* Photos Section */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider">
-              Item Photo
+              Item Photo *
             </label>
 
             {photoUrl ? (
@@ -178,22 +140,15 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
                     <span>Upload Image</span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      aria-label="Upload item photo"
+                      disabled={isReadingPhoto}
                       onChange={handleFileUpload}
                       className="hidden"
                     />
                   </label>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const svg = getCampusPlaceholderImage(category, title || category);
-                      setPhotoUrl(svg);
-                    }}
-                    className="py-2 px-3 bg-neutral-100 hover:bg-neutral-200 rounded-xl text-xs font-semibold text-neutral-700 transition-colors shrink-0"
-                  >
-                    Use SJSU Badge
-                  </button>
+
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -221,12 +176,15 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
             )}
           </div>
 
+          {isReadingPhoto && <p role="status" className="text-xs text-neutral-500">Reading photo…</p>}
+          {errors.photoUrl && <p role="alert" className="text-xs text-red-600">{errors.photoUrl}</p>}
           {/* Title */}
           <div className="space-y-1">
             <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider">
               Item Title *
             </label>
             <input
+              aria-label="Item title"
               type="text"
               placeholder="e.g. Hydro Flask 32oz Wide Mouth (Deep Blue)"
               value={title}
@@ -249,7 +207,8 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
                 Category *
               </label>
               <select
-                value={category}
+                aria-label="Category"
+              value={category}
                 onChange={(e) => setCategory(e.target.value as ItemCategory)}
                 className="w-full text-xs sm:text-sm border border-neutral-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-neutral-900 text-neutral-800"
               >
@@ -266,7 +225,8 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
                 Date Found *
               </label>
               <input
-                type="date"
+                aria-label="Date found"
+              type="date"
                 max={todayStr}
                 value={dateFound}
                 onChange={(e) => setDateFound(e.target.value)}
@@ -288,6 +248,7 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
               Campus Location Found *
             </label>
             <select
+              aria-label="Location found"
               value={locationFound}
               onChange={(e) => setLocationFound(e.target.value)}
               className="w-full text-xs sm:text-sm border border-neutral-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-neutral-900 text-neutral-800"
@@ -306,6 +267,7 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
               Detailed Description *
             </label>
             <textarea
+              aria-label="Description"
               rows={3}
               placeholder="Describe distinguishing marks, exact room or area, or whether it was handed to a front desk..."
               value={description}
@@ -327,7 +289,7 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
           <button
             type="button"
             onClick={onClose}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isReadingPhoto}
             className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:text-neutral-900 transition-colors"
           >
             Cancel
@@ -335,7 +297,7 @@ export const PostItemModal: React.FC<PostItemModalProps> = ({ onClose, onSuccess
           <button
             type="submit"
             form="post-item-form"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isReadingPhoto}
             className="px-5 py-2.5 bg-sjsu-600 hover:bg-sjsu-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-2"
           >
             {isSubmitting ? (

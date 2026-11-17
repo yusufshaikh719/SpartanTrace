@@ -1,0 +1,6 @@
+project_id = "spartantrace"
+
+# Login precedes authentication. The function validates credentials with Auth;
+# service-only SQL grants the resulting session access to application data.
+[functions.login]
+verify_jwt = false

@@ -30,7 +30,7 @@ interface RegistryHeaderProps {
   onResetFilters: () => void;
   statusFilter: 'all' | 'available' | 'pending';
   onStatusFilterChange: (status: 'all' | 'available' | 'pending') => void;
-  viewMode: 'all' | 'my-listings';
+  viewMode: 'all' | 'my-listings' | 'my-claims';
 }
 
 export const RegistryHeader: React.FC<RegistryHeaderProps> = ({
@@ -68,15 +68,15 @@ export const RegistryHeader: React.FC<RegistryHeaderProps> = ({
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
-              {viewMode === 'my-listings' ? 'My Reported Items' : 'Campus Registry'}
+              {viewMode === 'my-listings' ? 'My Reported Items' : viewMode === 'my-claims' ? 'My Ownership Claims' : 'Campus Registry'}
             </h1>
             <p className="text-xs text-neutral-500 mt-0.5">
               {viewMode === 'my-listings'
                 ? 'Items you found and posted to the campus community'
-                : 'Lost & found items recorded across SJSU facilities'}
+                : viewMode === 'my-claims' ? 'Items you claimed, including completed returns' : 'Lost & found items recorded across SJSU facilities'}
             </p>
           </div>
-          <span className="text-xs font-bold text-neutral-600 bg-neutral-100 border border-neutral-200/80 px-2.5 py-1 rounded-full">
+          <span className="shrink-0 whitespace-nowrap text-xs font-bold text-neutral-600 bg-neutral-100 border border-neutral-200/80 px-2.5 py-1 rounded-full">
             {totalResults} {totalResults === 1 ? 'item' : 'items'}
           </span>
         </div>
@@ -87,9 +87,10 @@ export const RegistryHeader: React.FC<RegistryHeaderProps> = ({
           <div className="relative inline-flex items-center">
             <MapPin className="w-3.5 h-3.5 text-sjsu-600 absolute left-3 pointer-events-none" />
             <select
+              aria-label="Filter by campus location"
               value={selectedLocation}
               onChange={(e) => onLocationChange(e.target.value)}
-              className="text-xs font-semibold bg-white text-neutral-800 rounded-xl pl-9 pr-8 py-2 border border-neutral-200/90 hover:border-neutral-300 shadow-2xs transition-colors cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-sjsu-500/20"
+              className="max-w-[260px] text-xs font-semibold bg-white text-neutral-800 rounded-xl pl-9 pr-8 py-2 border border-neutral-200/90 hover:border-neutral-300 shadow-2xs transition-colors cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-sjsu-500/20"
             >
               {CAMPUS_HOTSPOTS.map((hotspot) => (
                 <option key={hotspot.value} value={hotspot.value}>

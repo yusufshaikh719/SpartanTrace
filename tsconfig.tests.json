@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "vite/client"
+    ]
+  },
+  "include": [
+    "src",
+    "tests",
+    "supabase/functions/_shared",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "scripts"
+  ]
+}

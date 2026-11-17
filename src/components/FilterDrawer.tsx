@@ -54,6 +54,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
         <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between">
           <h3 className="font-bold text-base text-neutral-900">Filters</h3>
           <button
+            aria-label="Close dialog"
             onClick={onClose}
             className="p-1.5 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors"
           >

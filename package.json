@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc -p tsconfig.tests.json",
+    "supabase:check": "node scripts/supabase-check.ts",
+    "supabase:prepare": "node scripts/supabase-prepare.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
@@ -15,6 +20,8 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^22.13.9",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
@@ -23,6 +30,7 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^5.1.0"
   }
 }
